@@ -1,4 +1,13 @@
 {
+  "name": "step-through",
+  "private": true,
+  "description": "Step Through: Learn to Code. A single-file, offline programming course for phones.",
+  "scripts": {
+    "build": "python3 build.py && python3 make-pages.py",
+    "test": "node tests-shipped.mjs && node content-tests.mjs shipped && node smoke.mjs && node prose-audit.mjs",
+    "test:browser": "node markup-oracle.mjs shipped && node ui-browser.mjs && node preflight.mjs && node contrast-check.mjs && node theme-check.mjs && node pages-check.mjs",
+    "test:compilers": "node multi-oracle.mjs shipped ruby,php,go,csharp && node multi-oracle.mjs shipped java,typescript && node multi-oracle.mjs shipped kotlin"
+  },
   "dependencies": {
     "@sparticuz/chromium": "^152.0.0",
     "jsdom": "^30.0.1",

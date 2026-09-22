@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<script>
+  /* Runs before the page draws. localStorage is readable here on a web server or
+     a local file; inside a Claude artifact it is blocked, and the choice arrives a
+     moment later from window.storage instead. */
+  try { var t = localStorage.getItem('polyglot:theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<meta name="theme-color" content="#F2F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151A23" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Step Through">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Step Through: Learn to Code","short_name":"Step Through","start_url":".","display":"standalone","background_color":"%23F2F4F7","theme_color":"%23F2F4F7"}'>
+<title>Step Through: Learn to Code</title>
+<style>
+  /*__FONTS__*/
+  /* Step Through: a light, quiet page where the only loud thing is the highlighter:
+     yellow always means "the machine is here": the running line, the line just
+     printed, the task you are on, the lesson you are in. Type is Atkinson
+     Hyperlegible (Braille Institute), chosen because it keeps l/1/I, O/0 and quote
+     marks distinct: exactly the characters beginners misread. */
+  :root{
+    --paper:#F2F4F7; --sheet:#FFFFFF; --rule:#D5DAE3; --rule-2:#E6E9EF;
+    --ink:#1C2433; --ink-soft:#2E3747; --slate:#5B6577; --slate-2:#575F70;
+    --mark:#FFE45C; --mark-soft:#FFF3A8;
+    --good:#1F7A4D; --good-bg:#E6F3EC; --bad:#B42318; --bad-bg:#FBEAE8;
+    --gold:#8A5E00; --focus:#2742B0;
+    --on-mark:#1C2433; --flash:#FFE45C;
+    --btn-bg:#1C2433; --btn-fg:#FFFFFF;
+    --console:#1C2433; --console-fg:#EEF1F6; --console-ok:#7FD4A6;
+    --scrim:rgba(28,36,51,.45);
+    --tok-kw:#2742B0; --tok-bi:#6D3894; --tok-str:#1B6B43; --tok-num:#9A4400;
+    color-scheme:light dark;
+    --mono:"Atkinson Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Atkinson Next",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --tap:44px;
+  }
+  /* Dark: same structure, same single highlighter. Text that sits ON the yellow
+     band keeps dark ink in both themes (--on-mark), so the band reads identically. */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#151A23; --sheet:#1C222D; --rule:#323B4A; --rule-2:#262E3A;
+      --ink:#E8ECF2; --ink-soft:#C9D0DB; --slate:#A3ACBC; --slate-2:#A3ACBC;
+      --mark:#FFE45C; --mark-soft:#FFF3A8; --flash:#5A4E14;
+      --good:#6BCB97; --good-bg:#15301F; --bad:#FF8A7A; --bad-bg:#3A1C19;
+      --gold:#E8C35A; --focus:#9DB2FF;
+      --btn-bg:#E8ECF2; --btn-fg:#151A23;
+      --console:#0F131A; --console-fg:#E8ECF2; --console-ok:#7FD4A6;
+      --scrim:rgba(0,0,0,.6);
+      --tok-kw:#9DB2FF; --tok-bi:#D6A6F2; --tok-str:#7FD4A6; --tok-num:#F2B27A;
+    }
+  }
+  /* the same list again for someone who picks Dark on a light phone. preflight asserts the two stay identical */
+  :root[data-theme="dark"]{
+      --paper:#151A23; --sheet:#1C222D; --rule:#323B4A; --rule-2:#262E3A;
+      --ink:#E8ECF2; --ink-soft:#C9D0DB; --slate:#A3ACBC; --slate-2:#A3ACBC;
+      --mark:#FFE45C; --mark-soft:#FFF3A8; --flash:#5A4E14;
+      --good:#6BCB97; --good-bg:#15301F; --bad:#FF8A7A; --bad-bg:#3A1C19;
+      --gold:#E8C35A; --focus:#9DB2FF;
+      --btn-bg:#E8ECF2; --btn-fg:#151A23;
+      --console:#0F131A; --console-fg:#E8ECF2; --console-ok:#7FD4A6;
+      --scrim:rgba(0,0,0,.6);
+      --tok-kw:#9DB2FF; --tok-bi:#D6A6F2; --tok-str:#7FD4A6; --tok-num:#F2B27A;
+    color-scheme:dark;
+  }
+  :root[data-theme="light"]{color-scheme:light}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;
+    display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+    font-variant-ligatures:none}
+  button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  /* small labels: sentence case, never tracked capitals */
+  .eyebrow{font-size:13px;font-weight:600;color:var(--slate);letter-spacing:0}
+
+  header{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--paper)}
+  .mark{display:flex;align-items:baseline;margin-right:auto;min-width:0}
+  .mark b{font-size:clamp(16px,5vw,21px);font-weight:750;letter-spacing:-.02em;white-space:nowrap}
+  .mark span{display:none}
+  select.langsel,.langsel{font-family:var(--mono);font-size:16px;padding:0 10px;min-height:var(--tap);border:1.5px solid var(--rule);
+    border-radius:8px;background:var(--sheet);color:var(--ink);appearance:none;text-align:center}
+  .iconbtn{border:1.5px solid var(--rule);border-radius:8px;width:var(--tap);height:var(--tap);display:grid;place-items:center;
+    font-size:18px;color:var(--ink);background:var(--sheet)}
+
+  /* Learn, Predict, Build is a real sequence, so it is numbered */
+  .rail{display:flex;align-items:center;gap:4px;padding:0 10px 8px;background:var(--paper);border-bottom:1.5px solid var(--rule);counter-reset:phase}
+  .rail .phase{flex:0 0 auto;counter-increment:phase;font-size:15px;font-weight:600;padding:0 12px;border-radius:8px;
+    color:var(--slate);min-height:var(--tap)}
+  /* narrow phones: the name, three phases and the score must each stay on one line */
+  @media (max-width:360px){ .rail{gap:0} .rail .phase{padding:0 8px} }
+  .rail .phase::before{content:counter(phase) "  ";color:var(--slate-2);font-weight:500;white-space:pre}
+  .rail .phase[aria-selected="true"]{background:var(--mark);color:var(--on-mark)}
+  .rail .phase[aria-selected="true"]::before{color:var(--on-mark)}
+  .score{margin-left:auto;display:flex;gap:10px;align-items:baseline;font-size:14px;color:var(--slate);padding-right:4px;white-space:nowrap}
+  .score b{color:var(--ink);font-size:15px;font-weight:700}
+  .score .streak{color:var(--good)}
+
+  .lessonbar{padding:16px 16px 14px;background:var(--paper)}
+  .lessonbar h1{margin:2px 0 4px;font-size:26px;line-height:1.15;font-weight:750;letter-spacing:-.02em}
+  .lessonbar p{margin:0;font-size:16px;color:var(--slate)}
+  /* the standard name, so a learner can search for it once they leave the app */
+  .lessonbar p.known{margin-top:6px;font-size:15px}
+  .lessonbar p.known b{color:var(--ink);font-weight:700}
+
+  main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  section{display:none;padding:0 0 24px}
+  section[data-open="true"]{display:block}
+
+  .teach{padding:6px 16px 4px;max-width:40em}
+  .teach .blk{margin-bottom:20px}
+  .teach h3{margin:0 0 4px;font-size:17px;line-height:1.3;font-weight:700;color:var(--ink)}
+  .teach p{margin:0;font-size:16px;color:var(--ink-soft);line-height:1.6}
+  .practice{margin:4px 16px 22px;padding:14px 0 0;border-top:1.5px solid var(--rule);max-width:40em}
+  .practice .eyebrow{color:var(--good)}
+  .practice h3{margin:2px 0 4px;font-size:17px;font-weight:700}
+  .practice p{margin:0;font-size:16px;color:var(--ink-soft);line-height:1.6}
+  .cardlabel{padding:0 16px 8px}
+
+  /* the code sheet: white, full bleed, ruled top and bottom */
+  .surface{background:var(--sheet);color:var(--ink);border-top:1.5px solid var(--rule);border-bottom:1.5px solid var(--rule)}
+  .codelines{font-family:var(--mono);font-size:15.5px;line-height:1.7;padding:10px 0 12px}
+  .row{display:flex;align-items:flex-start;padding:0 14px 0 0;position:relative}
+  .row .n{flex:0 0 36px;text-align:right;padding-right:12px;color:var(--slate-2);font-size:13px;user-select:none}
+  .row .src{white-space:pre-wrap;word-break:break-word;flex:1;min-width:0}
+  /* the running line keeps light-theme syntax colours: they are what reads on yellow */
+  .row.lit{background:var(--mark);color:var(--on-mark);
+    --tok-kw:#2742B0; --tok-bi:#6D3894; --tok-str:#1B6B43; --tok-num:#9A4400; --slate-2:#575F70}
+  .row.lit .n{color:var(--on-mark);font-weight:700}
+  .row.errline{background:var(--bad-bg)}
+  .row.errline .n{color:var(--bad);font-weight:700}
+  .tok-kw{color:var(--tok-kw);font-weight:700}
+  .tok-bi{color:var(--tok-bi)}
+  .tok-str{color:var(--tok-str)}
+  .tok-num{color:var(--tok-num)}
+  .tok-com{color:var(--slate-2)}
+  .caption{padding:10px 16px 0;color:var(--slate);font-size:14.5px;max-width:40em}
+
+  textarea.editor{width:100%;border:none;resize:none;display:block;background:var(--sheet);color:var(--ink);
+    font-family:var(--mono);font-size:16px;line-height:1.7;padding:12px 14px 16px 14px;min-height:30vh}
+  .tapedit{display:block;width:100%;text-align:left;padding:0 16px;min-height:var(--tap);background:var(--sheet);
+    font-size:14.5px;font-weight:600;color:var(--slate);border-top:1.5px solid var(--rule-2)}
+
+  .quizhead{padding:16px 16px 6px}
+  .quizhead .q{font-size:18px;font-weight:700;line-height:1.35}
+  .statement{margin:6px 16px 0;padding:14px 16px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+    font-size:16px;line-height:1.55;color:var(--ink)}
+  .options{padding:14px 16px 4px;display:grid;gap:8px}
+  .opt{text-align:left;border:1.5px solid var(--rule);border-radius:8px;padding:12px 14px;background:var(--sheet);min-height:52px;
+    font-family:var(--mono);font-size:15px;white-space:pre-wrap;line-height:1.5;color:var(--ink)}
+  .opt.right{border-color:var(--good);background:var(--good-bg)}
+  .opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+  .verdict{margin:14px 16px 0;padding:0 0 0 14px;border-left:3px solid var(--rule)}
+  .verdict b{display:block;font-size:17px;margin-bottom:2px}
+  .verdict.right{border-left-color:var(--good)}
+  .verdict.right b{color:var(--good)}
+  .verdict.wrong{border-left-color:var(--bad)}
+  .verdict.wrong b{color:var(--bad)}
+  .verdict p{margin:0;font-size:15.5px;color:var(--ink-soft)}
+
+  .taskhead{padding:14px 16px 12px;position:sticky;top:0;z-index:3;background:var(--paper);border-bottom:1.5px solid var(--rule)}
+  .taskhead .p{max-height:26vh;overflow-y:auto;font-size:16.5px;line-height:1.45;color:var(--ink);font-weight:600}
+  .dots{display:flex;gap:6px;margin-bottom:10px}
+  .dots i{width:26px;height:6px;border-radius:3px;background:var(--rule);display:block}
+  .dots i[data-done="true"]{background:var(--good)}
+  .dots i[data-current="true"]{background:var(--mark);box-shadow:inset 0 0 0 1.5px var(--on-mark)}
+  /* hints are a ladder, so they are numbered */
+  .hintbox{margin:12px 16px 0;padding:0;counter-reset:hint}
+  .hintbox div{counter-increment:hint;font-size:15.5px;color:var(--ink-soft);margin-bottom:8px;padding-left:64px;position:relative}
+  .hintbox div::before{content:"Hint " counter(hint);position:absolute;left:0;top:0;font-weight:700;color:var(--ink)}
+  .hintbox div:last-child{margin-bottom:0}
+
+  .panebar{display:flex;gap:6px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .panebar button{font-size:15px;font-weight:600;padding:0 16px;border:1.5px solid var(--rule);border-radius:8px;
+    color:var(--slate);min-height:var(--tap);background:var(--sheet)}
+  .panebar button[aria-pressed="true"]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
+  .preview{background:#fff;border-top:1.5px solid var(--rule)}
+  .preview iframe{width:100%;height:230px;border:0;display:block;background:#fff}
+  .previewlabel{font-size:13px;font-weight:600;color:var(--slate);background:var(--paper);padding:8px 16px}
+  .checklist{padding:12px 16px 16px}
+  .checkrow{display:flex;gap:10px;align-items:flex-start;font-size:15px;margin-bottom:8px;color:var(--ink-soft)}
+  .checkrow i{flex:0 0 auto;font-style:normal;font-weight:700;font-size:15px}
+  .checkrow.pass i{color:var(--good)}
+  .checkrow.fail i{color:var(--bad)}
+  .checkrow.fail span{color:var(--bad)}
+
+  /* the text adventure plays in a real console */
+  .playout{background:var(--console);padding:14px 16px;max-height:34vh;overflow-y:auto;
+    font-family:var(--mono);font-size:14.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--console-fg)}
+  .playout .said{color:var(--mark)}
+  .playout .done{color:var(--console-ok)}
+  .playbar{display:flex;gap:8px;padding:10px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .playbar input{flex:1;min-width:0;background:var(--sheet);border:1.5px solid var(--rule);border-radius:8px;
+    color:var(--ink);font-family:var(--mono);font-size:16px;padding:0 12px;min-height:var(--tap)}
+  .cmpbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .cmpbar .langsel{margin-left:auto}
+  #compare .codelines{font-size:14px;line-height:1.65;padding:8px 0 10px}
+  .viewnote{margin:12px 16px;padding:12px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+    font-size:15px;color:var(--ink-soft)}
+
+  .tokenbar{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:var(--paper);border-top:1.5px solid var(--rule);scrollbar-width:none}
+  .tokenbar::-webkit-scrollbar{display:none}
+  .tokenbar button{flex:0 0 auto;font-family:var(--mono);font-size:15.5px;padding:0 13px;min-height:var(--tap);min-width:var(--tap);
+    border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);color:var(--ink);white-space:pre}
+  .controls{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border-top:1.5px solid var(--rule);flex-wrap:wrap}
+  .primary{background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:16px;padding:0 20px;border-radius:8px;min-height:48px}
+  .primary:disabled{opacity:.35}
+  .ghost{border:1.5px solid var(--rule);background:var(--sheet);border-radius:8px;padding:0 15px;font-size:16px;font-weight:600;min-height:48px}
+  .ghost:disabled{opacity:.4}
+  .danger{border:none;padding:0 10px;font-size:15px;color:var(--slate);min-height:48px;text-decoration:underline;text-underline-offset:3px}
+
+  .stepbar{display:flex;align-items:center;gap:8px;padding:8px 12px 4px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .stepbar input[type=range]{flex:1;min-width:0;accent-color:var(--ink);min-height:var(--tap)}
+  .stepbar .sq{width:var(--tap);height:var(--tap);border:1.5px solid var(--rule);border-radius:8px;display:grid;place-items:center;
+    font-size:16px;background:var(--sheet);color:var(--ink)}
+  .stepmeta{font-size:14px;color:var(--slate);padding:0 14px 8px;background:var(--paper)}
+
+  .readout{border-top:1.5px solid var(--rule);max-height:34vh;overflow-y:auto;background:var(--sheet)}
+  .tabs{display:flex;position:sticky;top:0;background:var(--sheet);border-bottom:1.5px solid var(--rule);z-index:1}
+  .tabs button{flex:1;min-height:var(--tap);font-size:15px;font-weight:600;color:var(--slate);border-bottom:3px solid transparent}
+  .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .panel{padding:12px 16px 16px;display:none}
+  .panel[data-open="true"]{display:block}
+  .outline{font-family:var(--mono);font-size:15px;white-space:pre-wrap;word-break:break-word;color:var(--ink);padding:1px 8px;margin:0 -8px}
+  .outline.justprinted{background:var(--mark);color:var(--on-mark)}
+  .empty{color:var(--slate);font-size:15px}
+  /* variables read as a ledger, not a stack of cards */
+  .slab{display:flex;align-items:baseline;gap:12px;padding:8px 8px;margin:0 -8px;border-bottom:1px solid var(--rule-2)}
+  .slab .k{font-family:var(--mono);font-size:15px;color:var(--tok-kw);font-weight:700;min-width:5ch}
+  .slab .v{font-family:var(--mono);font-size:15px;color:var(--ink);word-break:break-all}
+  .slab.changed{animation:marked 1.2s ease-out}
+  @keyframes marked{from{background:var(--flash)}to{background:transparent}}
+  .framelabel{font-size:13px;font-weight:600;color:var(--slate);margin:2px 0 6px}
+  .note{padding-left:12px;border-left:3px solid var(--rule);font-size:15px;color:var(--ink-soft)}
+  .errbox{border-left:3px solid var(--bad);padding-left:12px}
+  .errbox b{display:block;font-size:16px;margin-bottom:3px;color:var(--bad)}
+  .errbox span{font-size:15px;color:var(--ink-soft)}
+  .okbox{border-left:3px solid var(--good);padding-left:12px}
+  .okbox b{display:block;font-size:16px;color:var(--good)}
+  .stars{font-size:18px;letter-spacing:2px;color:var(--gold)}
+  .stars .off{color:var(--rule)}
+
+  .drawer{position:fixed;inset:0;background:var(--scrim);display:none;z-index:10}
+  .drawer[data-open="true"]{display:block}
+  .drawer .sheet{position:absolute;right:0;top:0;bottom:0;width:min(360px,90vw);background:var(--paper);
+    border-left:1.5px solid var(--rule);overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
+  .drawer h2{font-size:24px;margin:4px 0 10px;font-weight:750;letter-spacing:-.02em}
+  .drawer .eyebrow{font-size:17px;font-weight:750;color:var(--ink)}
+  .drawer .eyebrow span{font-size:14px;font-weight:500}
+  /* lessons are a list, not a pile of cards */
+  .lessonitem{display:block;width:100%;text-align:left;padding:11px 10px;margin:0 -10px;width:calc(100% + 20px);
+    border-bottom:1px solid var(--rule-2);border-radius:0;min-height:56px}
+  .lessonitem[aria-current="true"]{background:var(--mark);border-radius:6px;border-bottom-color:transparent}
+  .lessonitem[data-locked="true"] .t{color:var(--slate)}
+  .lessonitem .t{font-size:16px;font-weight:700;color:var(--ink)}
+  .lessonitem .g{font-size:14px;color:var(--slate)}
+  .lessonitem[aria-current="true"] .t,.lessonitem[aria-current="true"] .g,.lessonitem[aria-current="true"] .st{color:var(--on-mark)}
+  .lessonitem .st{font-size:13.5px;color:var(--gold);font-weight:600}
+  .themepick{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+  .themepick button{flex:1 1 auto;white-space:nowrap;padding:0 14px;min-height:var(--tap);border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+    font-size:15px;font-weight:600;color:var(--ink)}
+  .themepick button[aria-pressed="true"]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
+  .levelblurb{padding:8px 0 4px;font-size:14.5px;color:var(--good)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark"><b>Step Through</b></div>
+  <select class="langsel" id="langSel" aria-label="Language"></select>
+  <button class="iconbtn" id="btnLessons" aria-label="Lessons">☰</button>
+</header>
+
+<div class="rail">
+  <button class="phase" id="phLearn" aria-selected="true">Learn</button>
+  <button class="phase" id="phPredict">Predict</button>
+  <button class="phase" id="phBuild">Build</button>
+  <div class="score"><span><b id="xp">0</b> XP</span><span class="streak" id="streak"></span></div>
+</div>
+
+<div class="lessonbar">
+  <div class="eyebrow" id="lessonEyebrow">Lesson 1</div>
+  <h1 id="lessonTitle"></h1>
+  <p id="lessonIdea"></p>
+  <p id="lessonKnown" class="known" hidden></p>
+</div>
+
+<main>
+  <section id="secLearn" data-open="true">
+    <div class="teach" id="teachBlocks"></div>
+    <div class="practice" id="practiceBox"></div>
+    <div class="cardlabel eyebrow">Worked example</div>
+    <div class="surface">
+      <div id="demoCode" class="codelines"></div>
+      <div class="caption" id="demoCaption"></div>
+    </div>
+    <div class="controls">
+      <button class="primary" id="btnRunDemo">Run it</button>
+      <button class="ghost" id="btnToQuiz">Try the quiz</button>
+    </div>
+  </section>
+
+  <section id="secPredict">
+    <div class="quizhead"><div class="q" id="qPrompt"></div></div>
+    <div class="statement" id="qStatement" style="display:none"></div>
+    <div class="surface"><div id="qCode" class="codelines"></div></div>
+    <div class="options" id="qOptions"></div>
+    <div id="qVerdict"></div>
+    <div class="controls">
+      <button class="primary" id="btnQNext" disabled>Next</button>
+      <button class="ghost" id="btnQSkip">Skip to building</button>
+    </div>
+  </section>
+
+  <section id="secBuild">
+    <div class="taskhead">
+      <div class="dots" id="taskDots"></div>
+      <div class="p" id="taskPrompt"></div>
+    </div>
+    <div class="surface">
+      <div id="buildCode" class="codelines"></div>
+      <textarea class="editor" id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" style="display:none"></textarea>
+      <button class="tapedit" id="tapEdit">Tap to edit</button>
+    </div>
+    <div id="hintBox"></div>
+  </section>
+  <section id="secMarkup">
+    <div class="taskhead">
+      <div class="dots" id="mDots"></div>
+      <div class="p" id="mPrompt"></div>
+    </div>
+    <div class="panebar" id="mPanes">
+      <button id="paneHtml" aria-pressed="true">HTML</button>
+      <button id="paneCss" aria-pressed="false">CSS</button>
+    </div>
+    <div class="surface">
+      <textarea class="editor" id="mEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+    </div>
+    <div class="previewlabel">Live preview</div>
+    <div class="preview"><iframe id="mPreview" title="Live preview" sandbox="allow-same-origin"></iframe></div>
+    <div class="checklist" id="mChecks"></div>
+    <div id="mHintBox"></div>
+  </section>
+</main>
+
+<div id="compare" style="display:none">
+  <div class="cmpbar">
+    <span class="eyebrow">Side by side</span>
+    <select class="langsel" id="cmpSel" aria-label="Compare with"></select>
+  </div>
+  <div class="surface"><div id="cmpCode" class="codelines"></div></div>
+</div>
+
+<div id="playPanel" style="display:none">
+  <div class="cmpbar"><span class="eyebrow">Play it</span>
+    <button class="ghost" id="btnPlayRestart" style="margin-left:auto">Restart</button></div>
+  <div class="playout" id="playOut"></div>
+  <div class="playbar">
+    <input id="playIn" type="text" autocomplete="off" autocapitalize="off" placeholder="type here, then send">
+    <button class="primary" id="btnPlaySend">Send</button>
+  </div>
+</div>
+
+<div class="viewnote" id="viewNote" style="display:none"></div>
+<div class="tokenbar" id="tokenbar" style="display:none"></div>
+
+<div class="controls" id="markupControls" style="display:none">
+  <button class="primary" id="mCheck">Check</button>
+  <button class="ghost" id="mHint">Hint</button>
+  <button class="danger" id="mReveal">Show me</button>
+  <button class="danger" id="mReset">Reset</button>
+</div>
+
+<div class="controls" id="buildControls" style="display:none">
+  <button class="primary" id="btnRun">Run</button>
+  <button class="ghost" id="btnCheck">Check</button>
+  <button class="ghost" id="btnHint">Hint</button>
+  <button class="danger" id="btnReveal">Show me</button>
+  <button class="danger" id="btnResetTask">Reset</button>
+</div>
+
+<div class="stepbar" id="stepbar" style="display:none">
+  <button class="sq" id="btnPrev" aria-label="Previous step">◀</button>
+  <button class="sq" id="btnPlay" aria-label="Play steps">▶</button>
+  <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Execution step">
+  <button class="sq" id="btnNext" aria-label="Next step">▶|</button>
+</div>
+<div class="stepmeta" id="stepmeta" style="display:none"></div>
+
+<div class="readout" id="readout">
+  <div class="tabs" role="tablist">
+    <button id="tabOut" role="tab" aria-selected="true">Output</button>
+    <button id="tabVars" role="tab" aria-selected="false">Variables</button>
+    <button id="tabNote" role="tab" aria-selected="false">Notes</button>
+  </div>
+  <div class="panel" id="panelOut" data-open="true"></div>
+  <div class="panel" id="panelVars"></div>
+  <div class="panel" id="panelNote"></div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="sheet">
+    <div class="eyebrow" id="themeLabel" style="margin:4px 0 6px">Appearance</div>
+    <div class="themepick" role="group" aria-labelledby="themeLabel">
+      <button id="themeSystem" data-theme-choice="system">Match phone</button>
+      <button id="themeLight" data-theme-choice="light">Light</button>
+      <button id="themeDark" data-theme-choice="dark">Dark</button>
+    </div>
+    <h2>Lessons</h2><div id="lessonList"></div>
+  </div>
+</div>
+
+<script>
+/*__CORE__*/
+</script>
+<script>
+/*__GAME__*/
+</script>
+<script>
+/*__CONTENT__*/
+</script>
+<script>
+/*__MARKUP__*/
+</script>
+<script>
+const TOKENS = {
+  python:['print(','"',' = ','if ','elif ','else:',' == ',' < ',' > ',' >= ','for i in range(','while ','def ','return ',' + ',' - ',' * ',' % ','[',']','(',')',',',':','    '],
+  javascript:['console.log(','"',' = ','if (','} else if (','} else {',' == ',' < ',' > ',' >= ','for (let i = 0; i < ; i++) {','while (','function ','return ',' + ',' - ',' * ',' % ','[',']','(',')',',',';','{','}','  '],
+  ruby:['puts ','"',' = ','if ','elsif ','else','end',' == ',' < ',' > ',' >= ','for i in 0...','while ','def ','return ',' + ',' - ',' * ',' % ','[',']','(',')',',','  '],
+  typescript:['console.log(','"',' = ','if (','} else if (','} else {',' == ',' < ',' > ',' >= ','for (let i = 0; i < ; i++) {','while (','function ','return ',': number',': string',' + ',' - ',' * ',' % ','[',']','(',')',',',';','{','}','  '],
+  go:['fmt.Println(','"',' := ',' = ','if ','} else if ','} else {',' == ',' < ',' > ',' >= ','for i := 0; i < ; i++ {','for _, x := range ','func ','return ','var ','append(','len(',' + ',' - ',' * ',' % ','[',']','(',')',',','{','}','\t'],
+  php:['echo ','"','$',' = ','if (','} elseif (','} else {',' == ',' < ',' > ',' >= ','for ($i = 0; $i < ; $i++) {','foreach (',' as ','while (','function ','return ','new ',' . ',' + ',' - ',' * ',' % ','[',']','(',')',',',';','{','}','  '],
+  csharp:['Console.WriteLine(','"','int ','string ',' = ','if (','} else if (','} else {',' == ',' < ',' > ',' >= ','for (int i = 0; i < ; i++) {','foreach (','while (','static ','return ','new ',' + ',' - ',' * ',' % ','[',']','(',')',',',';','{','}','  '],
+  java:['System.out.println(','"','int ','String ',' = ','if (','} else if (','} else {',' == ',' < ',' > ',' >= ','for (int i = 0; i < ; i++) {','while (','static ','return ','new ',' + ',' - ',' * ',' % ','[',']','(',')',',',';','{','}','  '],
+  kotlin:['println(','"','var ',' = ','if (','} else if (','} else {',' == ',' < ',' > ',' >= ','for (i in 0 until ','while (','fun ','return ',': Int',': String','mutableListOf(','mutableMapOf(',' to ',' + ',' - ',' * ',' % ','[',']','(',')',',','{','}','    ']
+};
+
+const S = {
+  track:'code', mLesson:0, mTask:0, mPane:'html', mHtml:'', mCss:'', mHint:0, mRevealed:false,
+  lang:'python', lessonIndex:0, phase:'learn', taskIndex:0,
+  code:'', editing:false, result:null, step:0, playing:null, runTarget:'build',
+  viewLang:null,                 // a language we can render but not read back
+  cmpLang:null, reviewMode:false, drillMode:false, inputs:[], playing2:false,
+  quiz:null, hintLevel:0, revealed:false,
+  progress:{}, xp:0, streak:0
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const L = () => LESSONS[S.lessonIndex];
+const T = () => L().tasks[S.taskIndex];
+const pick = v => {
+  if(!(v && typeof v === 'object' && !Array.isArray(v))) return v;
+  return v[displayLang()] !== undefined ? v[displayLang()] : (v[S.lang] !== undefined ? v[S.lang] : v.python);
+};
+const displayLang = () => S.viewLang || S.lang;
+// languages this lesson can actually be done in, in the picker's own order
+const availableHere = () => Object.keys(POLYGLOT.SPECS)
+  .filter(id => (L().unavailable || []).indexOf(id) < 0)
+  .map(id => POLYGLOT.SPECS[id].name);
+const availableSentence = () => {
+  const n = availableHere();
+  return n.length ? 'Switch to ' + n.slice(0, -1).join(', ') + (n.length > 1 ? ' or ' + n[n.length - 1] : n[0]) + '.' : '';
+};
+const readOnly = () => !!S.viewLang;
+function shownCode(){
+  if(!S.viewLang) return S.code;
+  if(unavailableHere()) return (POLYGLOT.SPECS[S.viewLang].comment || '//') + ' ' + POLYGLOT.SPECS[S.viewLang].name + ' cannot express this lesson.';
+  try{ return POLYGLOT.translate(S.code, S.lang, S.viewLang); }
+  catch(e){ return '// ' + (e.message || 'This program cannot be shown in ' + S.viewLang + ' yet.'); }
+}
+
+/* Progress lives wherever this copy is running: window.storage inside a Claude
+   artifact (localStorage is blocked there), localStorage everywhere else: a
+   web server, or the file opened straight off the phone. One build, both homes. */
+const STORE = {
+  async get(k){
+    if(window.storage) { const r = await window.storage.get(k); return r && r.value; }
+    return localStorage.getItem(k);
+  },
+  async set(k, v){
+    if(window.storage) return window.storage.set(k, v);
+    localStorage.setItem(k, v);
+  }
+};
+
+async function loadProgress(){
+  try{
+    const v = await STORE.get('polyglot:v2');
+    if(v){ const d = JSON.parse(v); S.progress = d.progress || {}; S.xp = d.xp || 0; }
+  }catch(e){}
+  renderScore(); renderLessonList(); renderDots();
+}
+async function saveProgress(){
+  try{
+    await STORE.set('polyglot:v2', JSON.stringify({ progress:S.progress, xp:S.xp }));
+  }catch(e){}
+}
+
+const KEYWORDS = {
+  python:['if','elif','else','for','while','in','def','return','break','continue','and','or','not','True','False','None'],
+  javascript:['if','else','for','while','of','function','return','break','continue','let','const','true','false','null'],
+  ruby:['if','elsif','else','for','while','in','def','return','break','next','end','true','false','nil'],
+  typescript:['if','else','for','while','of','function','return','break','continue','let','const','true','false','null','number','string','boolean'],
+  go:['if','else','for','range','func','return','break','continue','var','true','false','nil','package','import','int','string','float64','bool'],
+  java:['if','else','for','while','return','break','continue','static','public','class','void','new','int','double','String','boolean','true','false','null','import'],
+  csharp:['if','else','for','foreach','while','return','break','continue','static','class','void','new','int','double','string','bool','true','false','null','using','in','var'],
+  php:['if','elseif','else','for','foreach','while','return','break','continue','function','as','true','false','null'],
+  kotlin:['fun','var','val','class','open','override','init','for','in','until','while','if','else','return','break','continue','try','catch','throw','true','false','null','this','Int','Double','String','Boolean','Unit']
+};
+const BUILTINS = {
+  python:['print','len','range','abs','min','max','append'],
+  javascript:['console','log','length','abs','min','max','push','Math'],
+  ruby:['puts','length','push','to_f'],
+  typescript:['console','log','length','push','Math'],
+  go:['fmt','Println','len','append','main'],
+  java:['System','out','println','size','add','get','set','length','List','ArrayList','Main','args','Math'],
+  csharp:['Console','WriteLine','Count','Add','Length','List','Program','Main','Math'],
+  php:['echo','count','strlen','array_push'],
+  kotlin:['println','size','add','mutableListOf','mutableMapOf','keys','containsKey','main','message','toString','toDouble','lowercase','uppercase']
+};
+function findCommentStart(line, marker){
+  let q = null;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(q){ if(c === '\\') i++; else if(c === q) q = null; continue; }
+    if(c === '"' || c === "'"){ q = c; continue; }
+    if(line.startsWith(marker, i)) return i;
+  }
+  return -1;
+}
+function highlight(line, lang){
+  const marker = (POLYGLOT.SPECS[lang] || {}).comment || '#';
+  const ci = findCommentStart(line, marker);
+  const code = ci >= 0 ? line.slice(0, ci) : line;
+  const tail = ci >= 0 ? line.slice(ci) : '';
+  const parts = [];
+  const re = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\b\d+(?:\.\d+)?\b|[A-Za-z_][A-Za-z0-9_]*)/g;
+  let last = 0, m;
+  while((m = re.exec(code))){
+    if(m.index > last) parts.push(esc(code.slice(last, m.index)));
+    const t = m[0];
+    if(t[0] === '"' || t[0] === "'") parts.push('<span class="tok-str">'+esc(t)+'</span>');
+    else if(/^\d/.test(t)) parts.push('<span class="tok-num">'+esc(t)+'</span>');
+    else if((KEYWORDS[lang]||[]).includes(t)) parts.push('<span class="tok-kw">'+esc(t)+'</span>');
+    else if((BUILTINS[lang]||[]).includes(t)) parts.push('<span class="tok-bi">'+esc(t)+'</span>');
+    else parts.push(esc(t));
+    last = m.index + t.length;
+  }
+  parts.push(esc(code.slice(last)));
+  if(tail) parts.push('<span class="tok-com">'+esc(tail)+'</span>');
+  return parts.join('') || '&nbsp;';
+}
+function paintCode(el, src, litLine, errLine){
+  el.innerHTML = src.split('\n').map((l,i)=>{
+    const n = i+1;
+    const cls = n === errLine ? ' errline' : (n === litLine ? ' lit' : '');
+    return '<div class="row'+cls+'"><div class="n">'+n+'</div><div class="src">'+highlight(l,displayLang())+'</div></div>';
+  }).join('');
+}
+function litLineNow(target){
+  if(S.runTarget !== target) return 0;
+  if(!S.result || !S.result.trace.length) return 0;
+  const t = S.result.trace[Math.min(S.step, S.result.trace.length-1)];
+  return t ? t.line : 0;
+}
+function errLineNow(target){
+  return (S.runTarget === target && S.result && S.result.error) ? S.result.error.line : 0;
+}
+
+function stopPlay(){ if(S.playing){ clearInterval(S.playing); S.playing = null; $('btnPlay').textContent = '▶'; } }
+
+function runSource(src, target, inputs){
+  stopPlay();
+  let r;
+  try{ r = POLYGLOT.execute(src, S.lang, { maxSteps:200000, maxTrace:4000, inputs: (inputs || []).slice() }); }
+  catch(e){ r = { output:[], trace:[], error:{ message:e.message||String(e), line:e.line||0, hint:e.hint||'' }, steps:0 }; }
+  S.runTarget = target;
+  S.result = { output:r.output, trace:r.trace, steps:r.steps, checked:null,
+    error: r.error ? { message:r.error.message, line:r.error.line, hint:r.error.hint, waiting: !!r.error.waiting } : null };
+  S.step = 0;                    // start at the first step, not the last
+  selectTab('out');
+  renderRunUI();
+}
+function primarySource(){
+  if(S.phase === 'build') return S.code;
+  if(S.phase === 'learn') return S.lang === 'python' ? L().demo.code : POLYGLOT.translate(L().demo.code, 'python', S.lang);
+  return null;
+}
+/* ---------- playing a program that asks for input ----------
+   The interpreter cannot pause, so each time you type we run the whole
+   program again from the start with every answer you have given so far.
+   Deterministic programs make that exact. */
+function wantsInput(src, lang){
+  try{ return /\binput\b/.test(JSON.stringify(POLYGLOT.parse(src, lang))); }
+  catch(e){ return false; }
+}
+function renderPlay(){
+  const box = $('playPanel');
+  const on = S.track === 'code' && S.phase === 'build' && !readOnly() && !unavailableHere() && wantsInput(S.code, S.lang);
+  box.style.display = on ? 'block' : 'none';
+  if(!on) return;
+  let r;
+  try{ r = POLYGLOT.execute(S.code, S.lang, { inputs: S.inputs.slice(), maxSteps: 200000, maxTrace: 1 }); }
+  catch(e){ $('playOut').innerHTML = '<span class="said">'+esc(e.message||String(e))+'</span>'; return; }
+  const lines = r.output.map(l=>esc(l));
+  if(r.waiting) lines.push('<span class="said">\u2026waiting for you</span>');
+  else if(r.error) lines.push('<span class="said">'+esc(r.error.message)+'</span>');
+  else lines.push('<span class="done">The end.</span>');
+  $('playOut').innerHTML = lines.join('\n');
+  $('playIn').disabled = !r.waiting;
+  $('btnPlaySend').disabled = !r.waiting;
+  $('playOut').scrollTop = $('playOut').scrollHeight;
+}
+
+function renderCompare(){
+  const box = $('compare');
+  const usable = S.track === 'code' && !readOnly() && !unavailableHere() && (S.phase === 'learn' || S.phase === 'build');
+  if(!usable || !S.cmpLang){ box.style.display = 'none'; return; }
+  const src = primarySource();
+  if(!src){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  let res;
+  try{ res = POLYGLOT.translateWithMap(src, S.lang, S.cmpLang); }
+  catch(e){
+    $('cmpCode').innerHTML = '<div class="row"><div class="n"></div><div class="src">'+esc(e.message)+'</div></div>';
+    return;
+  }
+  const target = S.phase === 'build' ? litLineNow('build') : litLineNow('demo');
+  const lang = S.cmpLang;
+  $('cmpCode').innerHTML = res.code.split('\n').map((l,i)=>{
+    const lit = target && res.map[i] === target ? ' lit' : '';
+    return '<div class="row'+lit+'"><div class="n">'+(i+1)+'</div><div class="src">'+highlight(l,lang)+'</div></div>';
+  }).join('');
+}
+function renderCmpOptions(){
+  const opts = ['<option value="">off</option>'].concat(
+    Object.values(POLYGLOT.SPECS).filter(sp=>sp.id !== S.lang).map(sp=>'<option value="'+sp.id+'">'+sp.name+'</option>'));
+  $('cmpSel').innerHTML = opts.join('');
+  $('cmpSel').value = S.cmpLang && S.cmpLang !== S.lang ? S.cmpLang : '';
+  if(S.cmpLang === S.lang) S.cmpLang = null;
+}
+
+function renderRunUI(){
+  renderStepbar();
+  if(S.phase === 'learn') paintCode($('demoCode'), demoSource(), litLineNow('demo'), errLineNow('demo'));
+  if(S.phase === 'build') paintCode($('buildCode'), shownCode(), litLineNow('build'), errLineNow('build'));
+  if(S.phase === 'predict' && S.runTarget === 'quiz'){
+    const q = S.quiz && S.quiz.questions[S.quiz.i];
+    if(q) paintCode($('qCode'), q.code, litLineNow('quiz'), 0);
+  }
+  renderOutput(); renderVars(); renderCompare(); renderPlay();
+}
+function renderStepbar(){
+  const on = !!(S.result && S.result.trace.length) && (S.phase !== 'predict' || S.runTarget === 'quiz');
+  $('stepbar').style.display = on ? 'flex' : 'none';
+  $('stepmeta').style.display = on ? 'block' : 'none';
+  if(!on) return;
+  const max = S.result.trace.length - 1;
+  $('scrub').max = String(max);
+  $('scrub').value = String(Math.min(S.step, max));
+  const t = S.result.trace[Math.min(S.step, max)];
+  let meta = 'Step ' + (Math.min(S.step,max)+1) + ' of ' + (max+1) + ', line ' + t.line +
+    (t.frame && t.frame !== 'main' ? ', inside ' + t.frame : '');
+  if(S.result.steps > S.result.trace.length) meta += ' (the first ' + S.result.trace.length + ' steps are shown)';
+  $('stepmeta').textContent = meta;
+}
+function setStep(i){
+  const max = S.result && S.result.trace.length ? S.result.trace.length-1 : 0;
+  S.step = Math.max(0, Math.min(i, max));
+  renderRunUI();
+}
+function renderOutput(){
+  const p = $('panelOut');
+  if(!S.result){ p.innerHTML = '<div class="empty">Nothing has run yet.</div>'; return; }
+  const r = S.result;
+  // every line is shown immediately; the marker just tracks where stepping has reached
+  const reached = ($('stepbar').style.display !== 'none' && r.trace.length)
+    ? r.trace[Math.min(S.step, r.trace.length-1)].outputLen : r.output.length;
+  let html = r.output.length
+    ? r.output.map((l,i)=>'<div class="outline'+(i === reached-1 ? ' justprinted' : '')+'">'+esc(l)+'</div>').join('')
+    : '<div class="empty">This program printed nothing.</div>';
+  if(r.error) html += '<div class="errbox" style="margin-top:10px"><b>'+esc(r.error.message)+'</b>'+(r.error.hint?'<span>'+esc(r.error.hint)+'</span>':'')+'</div>';
+  if(r.checked) html += r.checked.html;
+  p.innerHTML = html;
+}
+function renderVars(){
+  const p = $('panelVars');
+  if(!S.result || !S.result.trace.length){ p.innerHTML = '<div class="empty">Run a program, then step through it to watch values change.</div>'; return; }
+  const i = Math.min(S.step, S.result.trace.length-1);
+  const t = S.result.trace[i], prev = i > 0 ? S.result.trace[i-1] : null;
+  const slab = (k,v,ch)=>'<div class="slab'+(ch?' changed':'')+'"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>';
+  let html = '<div class="framelabel">'+(t.frame === 'main' ? 'Top level' : 'Inside '+esc(t.frame))+
+    (t.depth>1?', '+(t.depth-1)+' call'+(t.depth>2?'s':'')+' deep':'')+'</div>';
+  const keys = Object.keys(t.vars);
+  html += keys.length ? keys.map(k=>{
+      const v = POLYGLOT.fmt(t.vars[k], S.lang);
+      const ch = prev && prev.frame === t.frame && POLYGLOT.fmt(prev.vars[k], S.lang) !== v;
+      return slab(k, v, ch);
+    }).join('') : '<div class="empty">No values here yet.</div>';
+  if(t.globals){
+    html += '<div class="framelabel" style="margin-top:12px">main</div>';
+    html += Object.keys(t.globals).map(k=>slab(k, POLYGLOT.fmt(t.globals[k], S.lang), false)).join('') || '<div class="empty">No variables yet.</div>';
+  }
+  p.innerHTML = html;
+}
+
+function demoSource(){
+  const lang = displayLang();
+  if(lang === 'python') return L().demo.code;
+  try{ return POLYGLOT.translate(L().demo.code, 'python', lang); }
+  catch(e){ return (POLYGLOT.SPECS[lang].comment || '#') + ' ' + (e.message || 'Not available in this language.'); }
+}
+function unavailableHere(){ return (L().unavailable || []).indexOf(displayLang()) >= 0; }
+function paintMarkupDemo(){
+  const d = ML().demo;
+  $('demoCode').innerHTML = (d.html + '\n\n' + d.css).split('\n').map((l,i)=>
+    '<div class="row"><div class="n">'+(i+1)+'</div><div class="src">'+esc(l)+'</div></div>').join('');
+  $('btnRunDemo').style.display = 'none';
+  $('btnToQuiz').textContent = 'Start building';
+}
+
+function renderLearn(){
+  $('btnRunDemo').style.display = '';
+  $('btnToQuiz').textContent = 'Try the quiz';
+  $('teachBlocks').innerHTML = L().teach.map(b=>
+    '<div class="blk"><h3>'+esc(b.h)+'</h3><p>'+esc(pick(b.p))+'</p></div>').join('');
+  $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h3>'+esc(L().practice.h)+'</h3><p>'+esc(pick(L().practice.p))+'</p>';
+  $('demoCaption').textContent = L().demo.caption;
+  paintCode($('demoCode'), demoSource(), litLineNow('demo'), errLineNow('demo'));
+  $('panelNote').innerHTML = '<div class="note"><b>'+esc(L().practice.h)+'</b><br>'+esc(pick(L().practice.p))+'</div>';
+}
+
+/* Questions drawn from work already finished, so it stays fresh without new lessons. */
+function reviewPool(){
+  const out = [];
+  for(const les of LESSONS){
+    if((les.unavailable || []).indexOf(S.lang) >= 0) continue;
+    for(const t of les.tasks){
+      if(!t.solution || !progressOf(t.id).done) continue;
+      out.push({ id:t.id, src: GAME.solutionFor(t, S.lang, POLYGLOT) });
+    }
+  }
+  return out;
+}
+function startDrill(){
+  S.drillMode = true; S.reviewMode = false;
+  const day = Math.floor(Date.now() / 86400000);
+  const round = S.quiz && S.quiz.drill ? S.quiz.round + 1 : 0;
+  const qs = GAME.makeRecognitionRound(RECOGNISE, PATTERN_NAMES, day * 31 + round * 7 + 3, 5);
+  S.quiz = { questions:qs, i:0, answered:false, correct:0, round:round, drill:true };
+  setPhase('predict');
+}
+
+function startReview(){
+  const pool = reviewPool();
+  S.reviewMode = true;
+  const day = Math.floor(Date.now() / 86400000);
+  const rnd = GAME.mulberry32(day * 7919 + pool.length);
+  const picked = [];
+  const seen = {};
+  for(let guard = 0; guard < 60 && picked.length < 5 && pool.length; guard++){
+    const i = Math.floor(rnd() * pool.length);
+    if(seen[i]) continue;
+    seen[i] = 1;
+    const want = pool.length < 5 ? 2 : 1;   // a small pool still deserves a full round
+    const qs = GAME.makeQuestions(pool[i].src, S.lang, day + i * 31, want, POLYGLOT);
+    for(const q of qs){ if(picked.length < 5) picked.push(q); }
+  }
+  S.quiz = { questions:picked, i:0, answered:false, correct:0, round:0 };
+  setPhase('predict');
+}
+
+function startQuiz(){
+  const round = S.quiz ? S.quiz.round + 1 : 0;
+  const seedBase = S.lessonIndex * 977 + round * 31 + 7;
+  const pool = [demoSource()];
+  for(const task of L().tasks){
+    if(!task.solution) continue;
+    pool.push(GAME.solutionFor(task, S.lang, POLYGLOT));
+  }
+  let qs = [];
+  for(let i=0;i<pool.length && qs.length<3;i++){
+    qs = qs.concat(GAME.makeQuestions(pool[i], S.lang, seedBase + i * 13, 3 - qs.length, POLYGLOT));
+  }
+  S.quiz = { questions:qs, i:0, answered:false, correct:0, round:round };
+  renderQuestion();
+}
+function renderQuestion(){
+  S.result = null; S.runTarget = 'build';
+  $('readout').style.display = 'none';
+  renderStepbar();
+  if(!S.quiz.questions.length){
+    $('qPrompt').textContent = 'No questions for this one.';
+    paintCode($('qCode'), demoSource(), 0, 0);
+    $('qOptions').innerHTML = '';
+    $('qVerdict').innerHTML = '<div class="verdict"><p>' + (readOnly()
+      ? POLYGLOT.SPECS[S.viewLang].name + ' cannot express this lesson, so there is nothing to predict. ' + availableSentence()
+      : 'This lesson\u2019s programs are too short to ask about. Head to Build.') + '</p></div>';
+    $('btnQNext').disabled = true;
+    return;
+  }
+  const q = S.quiz.questions[S.quiz.i];
+  if(!q){ renderQuizDone(); return; }
+  const isDrill = q.type === 'recognise';
+  $('qPrompt').innerHTML = '<span class="eyebrow" style="display:block;margin-bottom:4px">Question ' + (S.quiz.i+1) +
+    ' of ' + S.quiz.questions.length + '</span>' + esc(isDrill ? 'Which technique fits this problem?' : q.prompt);
+  $('qCode').parentElement.style.display = isDrill ? 'none' : 'block';
+  $('qStatement').style.display = isDrill ? 'block' : 'none';
+  if(isDrill) $('qStatement').textContent = q.prompt;
+  else paintCode($('qCode'), q.code, q.focusLine || 0, 0);
+  $('qOptions').innerHTML = q.options.map((o,i)=>'<button class="opt" data-i="'+i+'">'+esc(o)+'</button>').join('');
+  $('qVerdict').innerHTML = '';
+  $('btnQNext').disabled = true;
+  S.quiz.answered = false;
+}
+function answerQuestion(i){
+  if(S.quiz.answered) return;
+  const q = S.quiz.questions[S.quiz.i];
+  S.quiz.answered = true;
+  const right = i === q.answer;
+  $('qOptions').querySelectorAll('.opt').forEach((b,bi)=>{
+    b.disabled = true;
+    if(bi === q.answer) b.classList.add('right');
+    else if(bi === i) b.classList.add('wrong');
+  });
+  if(right){ S.quiz.correct++; S.streak++; award(10 + Math.min(S.streak,5) * 2); }
+  else S.streak = 0;
+  $('qVerdict').innerHTML = '<div class="verdict '+(right?'right':'wrong')+'"><b>'+(right?'Right.':'Not this time.')+'</b><p>'+
+    (right ? '' : 'The answer is: ' + esc(q.options[q.answer]) + '. ') + esc(q.explain) + '</p>'+
+    (q.stepIndex != null ? '<button class="ghost" id="btnStepIt" style="margin-top:9px">Step to that moment</button>' : '')+
+    '</div>';
+  const b2 = $('btnStepIt');
+  if(b2) b2.onclick = stepThisQuestion;
+  $('btnQNext').disabled = false;
+  renderScore();
+}
+function stepThisQuestion(){
+  const q = S.quiz.questions[S.quiz.i];
+  if(!q) return;
+  runSource(q.code, 'quiz');
+  if(S.result.trace.length) S.step = Math.max(0, Math.min(q.stepIndex || 0, S.result.trace.length - 1));
+  $('readout').style.display = 'block';
+  selectTab('vars');
+  renderRunUI();
+  if($('stepbar').scrollIntoView) $('stepbar').scrollIntoView({ block: 'nearest' });
+}
+
+function nextQuestion(){
+  S.quiz.i++;
+  if(S.quiz.i >= S.quiz.questions.length) renderQuizDone();
+  else renderQuestion();
+}
+function renderQuizDone(){
+  $('qPrompt').textContent = (S.reviewMode ? 'Review: ' : '') + 'You got ' + S.quiz.correct + ' of ' + S.quiz.questions.length + '.';
+  paintCode($('qCode'), demoSource(), 0, 0);
+  $('qOptions').innerHTML = '';
+  $('qVerdict').innerHTML = '<div class="verdict"><b>' +
+    (S.quiz.correct === S.quiz.questions.length ? 'Clean sweep.' : 'Worth another look.') +
+    '</b><p>Predicting what code will do is the skill underneath debugging. Play again for a fresh set, or start building.</p></div>';
+  $('btnQNext').disabled = false;
+  $('btnQNext').textContent = 'Play again';
+}
+
+function progressOf(id){ return S.progress[id] || { stars:0, done:false }; }
+function starStr(n){ return '★★★'.slice(0,n) + '<span class="off">'+'★★★'.slice(n)+'</span>'; }
+function renderDots(){
+  $('taskDots').innerHTML = L().tasks.map((t,i)=>
+    '<i data-done="'+progressOf(t.id).done+'" data-current="'+(i===S.taskIndex)+'"></i>').join('');
+}
+function renderViewNote(){
+  if(unavailableHere()){
+    const sp = POLYGLOT.SPECS[displayLang()];
+    $('viewNote').style.display = 'block';
+    $('viewNote').textContent = sp.name + ' cannot express this lesson. ' +
+      (sp.id === 'go' ? 'Go leaves inheritance out by design and composes small pieces instead. That disagreement is worth knowing about.' : '') +
+      ' Switch to another language to read it.';
+    $('btnRun').disabled = true; $('btnCheck').disabled = true; $('btnRunDemo').disabled = true;
+    $('btnToQuiz').disabled = true; $('btnReveal').disabled = true; $('tapEdit').style.display = 'none';
+    return;
+  }
+  const on = readOnly();
+  $('viewNote').style.display = on ? 'block' : 'none';
+  if(on) $('viewNote').textContent = POLYGLOT.SPECS[S.viewLang].name +
+    ' leaves out what this lesson teaches, so it is shown here but cannot be run or edited. ' + availableSentence();
+  $('tapEdit').style.display = on ? 'none' : 'block';
+  $('btnRun').disabled = on;
+  $('btnCheck').disabled = on || !T().expect;
+  $('btnReveal').disabled = on;
+  $('btnRunDemo').disabled = on;
+  $('btnToQuiz').disabled = on;
+}
+
+function renderBuild(){
+  renderDots();
+  const t = T(), p = progressOf(t.id);
+  $('taskPrompt').innerHTML = esc(t.prompt) + (p.done ? ' <span class="stars">'+starStr(p.stars)+'</span>' : '');
+  $('btnCheck').disabled = !t.expect;
+  $('btnHint').disabled = !(t.hints && t.hints.length) || S.hintLevel >= (t.hints||[]).length;
+  $('btnReveal').style.display = (t.solution && S.hintLevel >= (t.hints||[]).length && t.hints && t.hints.length) ? 'inline-block' : 'none';
+  renderViewNote();
+  renderHints();
+  paintCode($('buildCode'), shownCode(), litLineNow('build'), errLineNow('build'));
+}
+function renderHints(){
+  const t = T();
+  if(!S.hintLevel){ $('hintBox').innerHTML = ''; return; }
+  const shown = (t.hints||[]).slice(0, S.hintLevel).map(h=>'<div>'+esc(pick(h))+'</div>').join('');
+  $('hintBox').innerHTML = '<div class="hintbox">'+shown+'</div>';
+}
+function setEditing(on){
+  S.editing = on;
+  $('editor').style.display = on ? 'block' : 'none';
+  $('buildCode').style.display = on ? 'none' : 'block';
+  $('tapEdit').textContent = on ? 'Done editing' : 'Tap to edit';
+  if(on){ $('editor').value = S.code; $('editor').focus(); }
+  else { S.code = $('editor').value; paintCode($('buildCode'), shownCode(), litLineNow('build'), errLineNow('build')); }
+}
+function loadTask(i){
+  S.taskIndex = i;
+  S.hintLevel = 0; S.revealed = false; S.result = null; S.step = 0;
+  // some lessons cannot be written in some languages; the note explains rather than throwing
+  try{ S.code = GAME.starterFor(T(), S.lang, POLYGLOT); }
+  catch(e){ S.code = (POLYGLOT.SPECS[S.lang].comment || '#') + ' ' + (e.message || 'Not available in this language.'); }
+  if(S.editing) setEditing(false);
+  S.inputs = [];
+  renderBuild(); renderStepbar(); renderOutput(); renderVars(); renderCompare(); renderPlay();
+}
+function doCheck(){
+  const t = T();
+  if(!t.expect) return;
+  if(S.editing) setEditing(false);
+  runSource(S.code, 'build', t.inputs);
+  const r = S.result;
+  if(r.error && r.error.waiting){
+    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>It is still waiting for input</b>'+
+      '<span>This task supplies '+((t.inputs||[]).length)+' answer'+(((t.inputs||[]).length)===1?'':'s')+
+      '. Asking for more than that means the loop is not ending when it should.</span></div>' };
+    renderOutput(); return;
+  }
+  if(r.error){
+    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>It stopped before finishing</b><span>Fix the problem above, then check again.</span></div>' };
+    renderOutput(); return;
+  }
+  const norm = a => a.map(x=>String(x).replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false').replace(/\bNone\b/g,'null'));
+  const got = norm(r.output), want = norm(t.expect);
+  let msg = null;
+  for(let i=0;i<Math.max(got.length,want.length);i++){
+    if(got[i] !== want[i]){
+      if(i >= got.length) msg = 'Output line ' + (i+1) + ' is missing. It should be: ' + want[i];
+      else if(i >= want.length) msg = 'There is an extra output line: ' + got[i];
+      else msg = 'Output line ' + (i+1) + ' was "' + got[i] + '" but should be "' + want[i] + '".';
+      break;
+    }
+  }
+  if(msg){
+    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>Not there yet</b><span>'+esc(msg)+'</span></div>' };
+    renderOutput(); return;
+  }
+  let stars = S.revealed ? 1 : (S.hintLevel > 0 ? 2 : 3);
+  let craftNote = '';
+  if(t.craft && stars === 3){
+    let res = null;
+    try{ res = GAME.checkCraft(t.craft, POLYGLOT.parse(S.code, S.lang)); }catch(e){}
+    if(res && !res.pass){ stars = 2; craftNote = 'For the third star: ' + res.label.toLowerCase() + '.'; }
+    else if(res && res.pass) craftNote = res.label + '.';
+  }
+  let speedNote = '', speedOk = true;
+  if(t.speed){
+    const g = GAME.measureGrowth(S.code, S.lang, t.speed, POLYGLOT);
+    if(!g.ok) speedNote = '<span class="empty">Speed could not be measured: '+esc(g.reason)+'</span>';
+    else {
+      speedOk = g.pass;
+      speedNote = '<span class="empty">'+esc(g.label)+'. '+esc(g.verdict)+
+        ' (' + g.counts[0] + ' steps at ' + g.sizes[0] + ', ' + g.counts[1] + ' at ' + g.sizes[1] + ')</span>';
+      if(!g.pass) stars = Math.min(stars, 1);
+    }
+  }
+  const prev = progressOf(t.id);
+  if(stars > prev.stars) award((stars - prev.stars) * 10);
+  S.progress[t.id] = { stars: Math.max(stars, prev.stars), done:true };
+  saveProgress();
+  r.checked = { pass:true, html:'<div class="'+(speedOk?'okbox':'errbox')+'" style="margin-top:10px"><b>'+
+    (speedOk ? 'Correct.' : 'Correct, but too slow.')+'</b>'+
+    '<div class="stars">'+starStr(stars)+'</div>'+
+    (craftNote?'<span class="empty">'+esc(craftNote)+'</span>':'')+speedNote+'</div>' };
+  renderOutput(); renderBuild(); renderLessonList(); renderScore();
+}
+function doHint(){
+  const t = T();
+  if(S.hintLevel < (t.hints||[]).length) S.hintLevel++;
+  renderBuild();
+}
+function doReveal(){
+  const t = T();
+  if(!t.solution) return;
+  S.revealed = true;
+  S.code = GAME.solutionFor(t, S.lang, POLYGLOT);
+  if(S.editing) setEditing(false);
+  renderBuild();
+}
+function award(n){ S.xp += n; renderScore(); saveProgress(); }
+function renderScore(){
+  $('xp').textContent = String(S.xp);
+  $('streak').textContent = S.streak > 1 ? ('streak ' + S.streak) : '';
+}
+
+/* ============================================================
+   MARKUP TRACK
+   ============================================================ */
+const ML = () => MARKUP_LESSONS[S.mLesson];
+const MT = () => ML().tasks[S.mTask];
+
+function renderPreview(html, css){
+  // Reassigning srcdoc while the previous srcdoc navigation is still in flight
+  // leaves the OLD document on screen for good, even though the attribute reads
+  // as the new one (seen in Chromium 152). Replacing the frame always lands on
+  // the newest content, which is what a live preview has to guarantee.
+  const f = $('mPreview');
+  const n = f.cloneNode(false);
+  n.srcdoc = markupDocument(html, css);
+  f.replaceWith(n);
+}
+function loadMarkupTask(i){
+  S.mTask = i; S.mHint = 0; S.mRevealed = false; S.mPane = 'html';
+  S.mHtml = MT().scaffold.html; S.mCss = MT().scaffold.css;
+  renderMarkup();
+}
+function renderMarkup(){
+  const t = MT(), pr = progressOf(t.id);
+  $('mDots').innerHTML = ML().tasks.map((x,i)=>
+    '<i data-done="'+progressOf(x.id).done+'" data-current="'+(i===S.mTask)+'"></i>').join('');
+  $('mPrompt').innerHTML = esc(t.prompt) + (pr.done ? ' <span class="stars">'+starStr(pr.stars)+'</span>' : '');
+  $('paneHtml').setAttribute('aria-pressed', String(S.mPane === 'html'));
+  $('paneCss').setAttribute('aria-pressed', String(S.mPane === 'css'));
+  $('mEditor').value = S.mPane === 'html' ? S.mHtml : S.mCss;
+  $('mHint').disabled = S.mHint >= (t.hints||[]).length;
+  $('mReveal').style.display = S.mHint >= (t.hints||[]).length ? 'inline-block' : 'none';
+  $('mHintBox').innerHTML = S.mHint
+    ? '<div class="hintbox">'+(t.hints||[]).slice(0,S.mHint).map(h=>'<div>'+esc(h)+'</div>').join('')+'</div>' : '';
+  renderPreview(S.mHtml, S.mCss);
+}
+function markupCheck(){
+  const t = MT();
+  const f = $('mPreview');
+  const run = () => {
+    let results;
+    try{ results = runMarkupChecks(f.contentDocument, f.contentWindow, t.checks); }
+    catch(e){ $('mChecks').innerHTML = '<div class="checkrow fail"><i>x</i><span>'+esc(e.message)+'</span></div>'; return; }
+    const passed = results.every(r=>r.ok);
+    $('mChecks').innerHTML = results.map((r,i)=>
+      '<div class="checkrow '+(r.ok?'pass':'fail')+'"><i>'+(r.ok?'\u2713':'\u2717')+'</i><span>'+
+      esc(r.ok ? (t.checks[i].msg || 'passes') : r.msg)+'</span></div>').join('');
+    if(passed){
+      const stars = S.mRevealed ? 1 : (S.mHint > 0 ? 2 : 3);
+      const prev = progressOf(t.id);
+      if(stars > prev.stars) award((stars - prev.stars) * 10);
+      S.progress[t.id] = { stars: Math.max(stars, prev.stars), done:true };
+      saveProgress();
+      $('mChecks').innerHTML = '<div class="okbox"><b>Correct.</b><div class="stars">'+starStr(stars)+'</div></div>' + $('mChecks').innerHTML;
+      renderMarkup(); renderLessonList();
+    }
+  };
+  // the preview reloads on every keystroke, so wait for the current document
+  if(f.contentDocument && f.contentDocument.readyState === 'complete') run();
+  else f.onload = () => { f.onload = null; run(); };
+}
+function setMarkupLesson(i){
+  S.track = 'markup'; S.mLesson = i; S.mTask = 0;
+  $('lessonEyebrow').textContent = 'HTML and CSS';
+  $('lessonTitle').textContent = ML().title;
+  $('lessonIdea').textContent = ML().idea;
+  renderKnown(ML().known);
+  setPhase('learn');
+  renderLessonList();
+}
+
+function setPhase(p){
+  stopPlay();
+  if(p !== 'predict'){ S.reviewMode = false; S.drillMode = false; }   // walking away ends the round
+  S.phase = p;
+  if(S.track === 'markup'){
+    if(p === 'predict') p = 'build';
+    S.phase = p;
+    $('secLearn').dataset.open = String(p === 'learn');
+    $('secPredict').dataset.open = 'false';
+    $('secBuild').dataset.open = 'false';
+    $('secMarkup').dataset.open = String(p === 'build');
+    $('phLearn').setAttribute('aria-selected', String(p === 'learn'));
+    $('phPredict').setAttribute('aria-selected', 'false');
+    $('phBuild').setAttribute('aria-selected', String(p === 'build'));
+    $('tokenbar').style.display = 'none';
+    $('buildControls').style.display = 'none';
+    $('markupControls').style.display = p === 'build' ? 'flex' : 'none';
+    $('readout').style.display = 'none';
+    $('stepbar').style.display = 'none';
+    $('stepmeta').style.display = 'none';
+    $('viewNote').style.display = 'none';
+    $('langSel').style.display = 'none';
+    if(p === 'learn'){
+      $('teachBlocks').innerHTML = ML().teach.map(b=>
+        '<div class="blk"><h3>'+esc(b.h)+'</h3><p>'+esc(b.p)+'</p></div>').join('');
+      $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h3>'+esc(ML().practice.h)+'</h3><p>'+esc(ML().practice.p)+'</p>';
+      $('demoCaption').textContent = 'This is the worked example. Your own code goes in Build.';
+      paintMarkupDemo();
+    } else loadMarkupTask(S.mTask);
+    return;
+  }
+  $('langSel').style.display = '';
+  $('secMarkup').dataset.open = 'false';
+  $('markupControls').style.display = 'none';
+  S.result = null; S.step = 0;
+  $('secLearn').dataset.open = String(p === 'learn');
+  $('secPredict').dataset.open = String(p === 'predict');
+  $('secBuild').dataset.open = String(p === 'build');
+  $('phLearn').setAttribute('aria-selected', String(p==='learn'));
+  $('phPredict').setAttribute('aria-selected', String(p==='predict'));
+  $('phBuild').setAttribute('aria-selected', String(p==='build'));
+  $('tokenbar').style.display = p === 'build' ? 'flex' : 'none';
+  $('buildControls').style.display = p === 'build' ? 'flex' : 'none';
+  $('readout').style.display = p === 'predict' ? 'none' : 'block';
+  if(p === 'learn'){ renderLearn(); renderViewNote(); }
+  renderCmpOptions();
+  if(p === 'predict'){
+    if(readOnly()){ S.quiz = { questions:[], i:0, answered:false, correct:0, round:0 }; renderQuestion(); }
+    else if(S.reviewMode || S.drillMode){ $('btnQNext').textContent = 'Next'; renderQuestion(); }
+    else { $('btnQNext').textContent = 'Next'; startQuiz(); }
+  }
+  if(p === 'build') loadTask(S.taskIndex);
+  renderStepbar(); renderOutput(); renderVars(); renderCompare();
+}
+function lessonDone(i){ return LESSONS[i].tasks.every(t => !t.expect || progressOf(t.id).done); }
+function unlocked(i){
+  if(i === 0 || LESSONS[i].id === 'sandbox') return true;
+  return lessonDone(i-1);
+}
+function loadLesson(i){
+  if(!unlocked(i)) return;
+  S.track = 'code';
+  S.lessonIndex = i; S.taskIndex = 0; S.quiz = null;
+  $('lessonEyebrow').textContent = LESSONS[i].id === 'sandbox' ? 'Free play' : ('Lesson ' + (i+1) + ' of ' + (LESSONS.length-1));
+  $('lessonTitle').textContent = LESSONS[i].title;
+  $('lessonIdea').textContent = LESSONS[i].idea;
+  renderKnown(LESSONS[i].known);
+  renderTokens();
+  setPhase('learn');
+  renderLessonList();
+}
+function renderTokens(){
+  $('tokenbar').innerHTML = (TOKENS[S.lang]||[]).map((t,i)=>
+    '<button data-i="'+i+'">'+esc(t.trim() === '' ? '⇥' : t.trim())+'</button>').join('');
+}
+function lessonCard(les, i, lock){
+  const stars = les.tasks.reduce((a,t)=>a + progressOf(t.id).stars, 0);
+  const max = les.tasks.filter(t=>t.expect).length * 3;
+  return '<button class="lessonitem" data-i="'+i+'"'+(S.track==='code'&&i===S.lessonIndex?' aria-current="true"':'')+' data-locked="'+lock+'">'+
+    '<div class="t">'+esc(les.title)+'</div>'+
+    '<div class="g">'+(lock ? 'Finish the lesson before this one' : esc(les.idea))+'</div>'+
+    (max && !lock ? '<div class="st">'+stars+' of '+max+' stars</div>' : '')+
+    '</button>';
+}
+
+function renderLessonList(){
+  const markup = '<div class="eyebrow" style="margin:22px 0 4px"><span style="font-size:17px;font-weight:750">HTML and CSS</span></div>' + MARKUP_LESSONS.map((les,i)=>{
+    const stars = les.tasks.reduce((a,t)=>a + progressOf(t.id).stars, 0);
+    return '<button class="lessonitem" data-m="'+i+'"'+(S.track==='markup'&&i===S.mLesson?' aria-current="true"':'')+'>'+
+      '<div class="t">'+esc(les.title)+'</div><div class="g">'+esc(les.idea)+'</div>'+
+      '<div class="st">'+stars+' of '+(les.tasks.length*3)+' stars</div></button>';
+  }).join('');
+  const ORDER = ['Basics','Intermediate','Advanced','Mastery','Problems','Project','Free play'];
+  const BLURB = {
+    'Basics':'You can read a short program and say what it prints.',
+    'Intermediate':'You can write loops, lists, dictionaries and functions without help.',
+    'Advanced':'You can find a bug from an error message and survive a failure.',
+    'Mastery':'You can read a class hierarchy in any of these languages.',
+    'Problems':'You can spot the pattern behind an interview question and hit the speed it needs.',
+    'Project':'You built a game from nothing and it is yours to keep.'
+  };
+  const groups = {};
+  LESSONS.forEach((les,i)=>{ (groups[les.level] = groups[les.level] || []).push([les,i]); });
+  const done = lvl => (groups[lvl]||[]).every(([les,i]) => lessonDone(i));
+  const finished = LESSONS.reduce((a,les)=>a + les.tasks.filter(t=>t.solution && progressOf(t.id).done).length, 0);
+  let html = '<button class="lessonitem" id="btnReview"'+(finished?'':' data-locked="true"')+'>'+
+    '<div class="t">Daily review</div><div class="g">'+
+    (finished ? 'Fresh questions drawn from the ' + finished + ' task' + (finished===1?'':'s') + ' you have finished'
+              : 'Finish a task first and this fills up') + '</div></button>';
+  html += '<button class="lessonitem" id="btnDrill">'+
+    '<div class="t">Spot the pattern</div>'+
+    '<div class="g">Five problems and no code to write. Name the technique each one needs.</div></button>';
+  for(const lvl of ORDER){
+    if(!groups[lvl]) continue;
+    const total = groups[lvl].reduce((a,[les])=>a + les.tasks.filter(t=>t.expect).length*3, 0);
+    const got = groups[lvl].reduce((a,[les])=>a + les.tasks.reduce((b,t)=>b+progressOf(t.id).stars,0), 0);
+    html += '<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:baseline;margin:'+(html?'22px':'6px')+' 0 4px">'+
+      '<span style="font-size:17px;font-weight:750">'+esc(lvl)+'</span>'+
+      (total ? '<span style="color:'+(done(lvl)?'var(--good)':'var(--slate)')+'">'+got+' of '+total+' stars</span>' : '')+'</div>';
+    html += groups[lvl].map(([les,i])=>lessonCard(les, i, !unlocked(i))).join('');
+    if(done(lvl) && BLURB[lvl]) html += '<div class="levelblurb">'+esc(BLURB[lvl])+'</div>';
+  }
+  $('lessonList').innerHTML = html + markup;
+}
+function switchLang(to){
+  if(to === displayLang()) return;
+  const spec = POLYGLOT.SPECS[to];
+  // a lesson this language cannot express is shown, explained, and not run
+  if(S.track === 'code' && (L().unavailable || []).indexOf(to) >= 0){
+    S.viewLang = to;
+    $('langSel').value = to;
+    S.result = null; S.step = 0;
+    if(S.editing) setEditing(false);
+    if(S.phase === 'learn') renderLearn();
+    if(S.phase === 'predict') setPhase('predict');
+    if(S.phase === 'build') renderBuild();
+    renderViewNote(); renderStepbar(); renderOutput(); renderVars(); renderCompare();
+    return;
+  }
+  if(spec && spec.viewOnly){
+    S.viewLang = to;
+    $('langSel').value = to;
+    S.result = null; S.step = 0;
+    if(S.editing) setEditing(false);
+    if(S.phase === 'learn') renderLearn();
+    if(S.phase === 'predict') setPhase('predict');
+    if(S.phase === 'build') renderBuild();
+    renderViewNote(); renderStepbar(); renderOutput(); renderVars();
+    return;
+  }
+  S.viewLang = null;
+  if(to === S.lang){
+    $('langSel').value = to;
+    if(S.phase === 'learn') renderLearn();
+    if(S.phase === 'build') renderBuild();
+    if(S.phase === 'predict') setPhase('predict');
+    renderViewNote(); renderStepbar(); renderOutput(); renderVars();
+    return;
+  }
+  const prev = S.lang;
+  if(S.phase === 'build'){
+    if(S.editing) setEditing(false);
+    const atStarter = S.code.trim() === GAME.starterFor(T(), prev, POLYGLOT).trim();
+    if(atStarter){ S.lang = to; S.code = GAME.starterFor(T(), to, POLYGLOT); }
+    else{
+      let translated;
+      try{ translated = POLYGLOT.translate(S.code, prev, to); }
+      catch(e){
+        S.result = { output:[], trace:[], steps:0, checked:null,
+          error:{ message:'Can\u2019t switch language until this program parses: ' + (e.message||String(e)), line:e.line||0, hint:e.hint||'' } };
+        S.runTarget = 'build'; selectTab('out'); renderRunUI();
+        $('langSel').value = prev;
+        return;
+      }
+      S.lang = to; S.code = translated;
+    }
+  } else S.lang = to;
+  $('langSel').value = to;
+  renderTokens();
+  S.result = null; S.step = 0;
+  if(S.phase === 'learn') renderLearn();
+  if(S.phase === 'predict') startQuiz();
+  if(S.phase === 'build') renderBuild();
+  renderViewNote(); renderCmpOptions(); renderStepbar(); renderOutput(); renderVars(); renderCompare();
+}
+function selectTab(which){
+  const map = { out:['tabOut','panelOut'], vars:['tabVars','panelVars'], note:['tabNote','panelNote'] };
+  for(const k in map){ $(map[k][0]).setAttribute('aria-selected', String(k===which)); $(map[k][1]).dataset.open = String(k===which); }
+}
+function insertToken(tok){
+  const ta = $('editor');
+  if(!S.editing) setEditing(true);
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0,s) + tok + ta.value.slice(e);
+  ta.setSelectionRange(s + tok.length, s + tok.length);
+  ta.focus();
+  S.code = ta.value;
+}
+
+$('langSel').innerHTML = Object.values(POLYGLOT.SPECS).map(sp=>'<option value="'+sp.id+'">'+sp.name+'</option>').join('');
+$('langSel').value = S.lang;
+$('langSel').onchange = e=>switchLang(e.target.value);
+$('cmpSel').onchange = e=>{ S.cmpLang = e.target.value || null; renderCompare(); };
+function sendPlayInput(){
+  const v = $('playIn').value;
+  if(v === '') return;
+  S.inputs.push(v);
+  $('playIn').value = '';
+  renderPlay();
+  $('playIn').focus();
+}
+$('btnPlaySend').onclick = sendPlayInput;
+$('playIn').onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); sendPlayInput(); } };
+$('btnPlayRestart').onclick = ()=>{ S.inputs = []; renderPlay(); };
+$('phLearn').onclick = ()=>{ S.reviewMode = false; S.drillMode = false; setPhase('learn'); };
+$('phPredict').onclick = ()=>{ S.reviewMode = false; S.drillMode = false; setPhase('predict'); };
+$('phBuild').onclick = ()=>{ S.reviewMode = false; S.drillMode = false; setPhase('build'); };
+$('btnRunDemo').onclick = ()=>runSource(demoSource(), 'demo');
+$('btnToQuiz').onclick = ()=>setPhase('predict');
+$('btnQSkip').onclick = ()=>setPhase('build');
+$('btnQNext').onclick = ()=>{
+  if($('btnQNext').textContent === 'Play again'){
+    $('btnQNext').textContent='Next';
+    if(S.drillMode) startDrill(); else if(S.reviewMode) startReview(); else startQuiz();
+  }
+  else nextQuestion();
+};
+$('qOptions').onclick = e=>{ const b = e.target.closest('.opt'); if(b) answerQuestion(parseInt(b.dataset.i,10)); };
+$('btnRun').onclick = ()=>{ if(S.editing) setEditing(false); runSource(S.code, 'build'); };
+$('btnCheck').onclick = doCheck;
+$('btnHint').onclick = doHint;
+$('btnReveal').onclick = doReveal;
+$('btnResetTask').onclick = ()=>loadTask(S.taskIndex);
+$('tapEdit').onclick = ()=>setEditing(!S.editing);
+$('buildCode').onclick = ()=>setEditing(true);
+$('editor').oninput = e=>{ S.code = e.target.value; renderPlay(); };
+function editorKeys(ta, onChange){
+  ta.addEventListener('keydown', e=>{
+    const v = ta.value, a = ta.selectionStart, b = ta.selectionEnd;
+    if(e.key === 'Enter'){
+      const lineStart = v.lastIndexOf('\n', a - 1) + 1;
+      const line = v.slice(lineStart, a);
+      let pad = (line.match(/^[ \t]*/) || [''])[0];
+      if(/[:{]\s*$/.test(line)) pad += (S.lang === 'python' ? '    ' : '  ');
+      e.preventDefault();
+      const ins = '\n' + pad;
+      ta.value = v.slice(0, a) + ins + v.slice(b);
+      ta.setSelectionRange(a + ins.length, a + ins.length);
+      onChange(ta.value);
+      return;
+    }
+    const pairs = { '(': ')', '[': ']', '{': '}', '"': '"' };
+    if(pairs[e.key] && a === b){
+      e.preventDefault();
+      const ins = e.key + pairs[e.key];
+      ta.value = v.slice(0, a) + ins + v.slice(b);
+      ta.setSelectionRange(a + 1, a + 1);
+      onChange(ta.value);
+      return;
+    }
+    if([')',']','}','"'].includes(e.key) && a === b && v[a] === e.key){
+      e.preventDefault();
+      ta.setSelectionRange(a + 1, a + 1);
+    }
+  });
+}
+editorKeys($('editor'), val=>{ S.code = val; });
+editorKeys($('mEditor'), val=>{
+  if(S.mPane === 'html') S.mHtml = val; else S.mCss = val;
+  renderPreview(S.mHtml, S.mCss);
+});
+$('tabOut').onclick = ()=>selectTab('out');
+$('tabVars').onclick = ()=>selectTab('vars');
+$('tabNote').onclick = ()=>selectTab('note');
+$('btnPrev').onclick = ()=>{ stopPlay(); setStep(S.step-1); };
+$('btnNext').onclick = ()=>{ stopPlay(); setStep(S.step+1); };
+$('scrub').oninput = e=>{ stopPlay(); setStep(parseInt(e.target.value,10)); };
+$('btnPlay').onclick = ()=>{
+  if(S.playing){ stopPlay(); return; }
+  const max = S.result && S.result.trace.length ? S.result.trace.length-1 : 0;
+  if(S.step >= max) setStep(0);
+  $('btnPlay').textContent = '❙❙';
+  S.playing = setInterval(()=>{ if(S.step >= max){ stopPlay(); return; } setStep(S.step+1); }, 260);
+};
+$('taskDots').onclick = ()=>loadTask((S.taskIndex + 1) % L().tasks.length);
+$('tokenbar').onclick = e=>{ const b = e.target.closest('button'); if(b) insertToken((TOKENS[S.lang]||[])[parseInt(b.dataset.i,10)]); };
+$('btnLessons').onclick = ()=>{ $('drawer').dataset.open = 'true'; };
+$('paneHtml').onclick = ()=>{ S.mPane='html'; renderMarkup(); };
+$('paneCss').onclick = ()=>{ S.mPane='css'; renderMarkup(); };
+$('mEditor').oninput = e=>{
+  if(S.mPane === 'html') S.mHtml = e.target.value; else S.mCss = e.target.value;
+  renderPreview(S.mHtml, S.mCss);
+};
+$('mCheck').onclick = markupCheck;
+$('mHint').onclick = ()=>{ if(S.mHint < (MT().hints||[]).length) S.mHint++; renderMarkup(); };
+$('mReveal').onclick = ()=>{ S.mRevealed = true; S.mHtml = MT().solution.html; S.mCss = MT().solution.css; renderMarkup(); };
+$('mReset').onclick = ()=>loadMarkupTask(S.mTask);
+$('mDots').onclick = ()=>loadMarkupTask((S.mTask + 1) % ML().tasks.length);
+
+$('drawer').onclick = e=>{
+  const dr = e.target.closest('#btnDrill');
+  if(dr){ $('drawer').dataset.open = 'false'; startDrill(); return; }
+  const rev = e.target.closest('#btnReview');
+  if(rev){
+    $('drawer').dataset.open = 'false';
+    if(reviewPool().length) startReview();
+    return;
+  }
+  const item = e.target.closest('.lessonitem');
+  if(item){
+    if(item.dataset.m != null) setMarkupLesson(parseInt(item.dataset.m,10));
+    else loadLesson(parseInt(item.dataset.i,10));
+    $('drawer').dataset.open = 'false';
+    return;
+  }
+  if(e.target === $('drawer')) $('drawer').dataset.open = 'false';
+};
+
+if(typeof window !== 'undefined'){
+  window.LESSONS = LESSONS; window.S = S; window.POLYGLOT = POLYGLOT; window.GAME = GAME;
+  window.MARKUP_LESSONS = MARKUP_LESSONS;
+  window.loadTask = loadTask; window.setPhase = setPhase; window.loadLesson = loadLesson;
+  window.setMarkupLesson = setMarkupLesson; window.loadMarkupTask = loadMarkupTask; window.markupCheck = markupCheck;
+  window.renderCompare = renderCompare; window.startReview = startReview; window.reviewPool = reviewPool;
+  window.startDrill = startDrill; window.RECOGNISE = RECOGNISE; window.PATTERN_NAMES = PATTERN_NAMES;
+}
+
+loadLesson(0);
+function renderKnown(name){
+  const el = $('lessonKnown');
+  if(!name){ el.hidden = true; el.textContent = ''; return; }
+  el.innerHTML = 'Programmers call this <b>' + esc(name) + '</b>.';
+  el.hidden = false;
+}
+
+/* Appearance: 'system' follows the phone, 'light' and 'dark' override it. */
+const PAPER = { light: '#F2F4F7', dark: '#151A23' };
+function applyTheme(choice){
+  const root = document.documentElement;
+  if(choice === 'light' || choice === 'dark') root.dataset.theme = choice; else delete root.dataset.theme;
+  // the browser bar colour follows too: forced themes pin both metas, 'system' restores their media queries
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+    const own = /dark/.test(m.getAttribute('media') || '') ? 'dark' : 'light';
+    m.setAttribute('content', PAPER[(choice === 'light' || choice === 'dark') ? choice : own]);
+  });
+  document.querySelectorAll('.themepick button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.themeChoice === (choice || 'system'))));
+}
+async function setTheme(choice){
+  applyTheme(choice);
+  try{ localStorage.setItem('polyglot:theme', choice); }catch(e){}
+  try{ await STORE.set('polyglot:theme', choice); }catch(e){}
+}
+document.querySelectorAll('.themepick button').forEach(b => { b.onclick = () => setTheme(b.dataset.themeChoice); });
+applyTheme(document.documentElement.dataset.theme || 'system');
+(async () => {                       // inside an artifact the saved choice only arrives here
+  try{ const v = await STORE.get('polyglot:theme'); if(v) applyTheme(v); }catch(e){}
+})();
+
+loadProgress();
+</script>
+</body>
+</html>

@@ -50,7 +50,7 @@ console.log('\nphrases worth a look:');
 for (const r of slop) { const hits = items.filter(x=>x[1] && r.test(x[1])); if (hits.length) console.log('   ', String(r).padEnd(20), hits.length+'x, e.g.', hits.slice(0,3).map(h=>h[0]).join(', ')); }
 
 /* Gate: the house rule is no em or en dashes anywhere learners or developers read. */
-const files = ['content.mjs', 'markup.mjs', 'ui.html', 'engine.mjs', 'game.mjs', 'pages/manifest.json'];
+const files = ['content.mjs', 'markup.mjs', 'ui.html', 'engine.mjs', 'game.mjs', 'docs/manifest.json', 'README.md', 'PROJECT-STATE.md', 'docs/DEPLOY.md'];
 let dashHits = [];
 for (const f of files) {
   const t = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8');
