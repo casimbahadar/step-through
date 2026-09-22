@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@sparticuz/chromium": "^152.0.0",
+    "jsdom": "^30.0.1",
+    "puppeteer-core": "^25.10.0"
+  }
+}
