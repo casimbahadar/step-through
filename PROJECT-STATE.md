@@ -97,7 +97,7 @@ Adding a language is mostly a spec plus a few hooks: not a new parser.
 28. **(2026-09-22) Theme colours, manifest and icons now match the redesign.** The browser
     `theme-color` and both manifests still carried the old `#10212B`, and the icons were the old
     teal and amber. The icon is now the signature moment: a running line on the highlighter.
-    `docs/sw.js` is at `polyglot-v2` for this deploy (decision 18).
+    `sw.js` is at `polyglot-v2` for this deploy (decision 18).
 29. **(2026-09-22) Appearance: Match phone / Light / Dark, in the menu drawer** (the header is
     full at 393px). `html[data-theme]` overrides the phone; the dark token list exists twice , 
     once under the media query guarded by `:not([data-theme="light"])`, once under
@@ -134,13 +134,19 @@ Adding a language is mostly a spec plus a few hooks: not a new parser.
     `npm test` (11 s), `npm run test:browser` (45 s) and `npm run test:compilers`. The old
     `tests.mjs` was a pre-recovery copy that imported engine exports the build no longer has; it
     failed on load and `tests-shipped.mjs` replaces it. The prose audit's no-dash gate now also
-    covers README.md, PROJECT-STATE.md and docs/DEPLOY.md.
-34. **(2026-09-22) The web version lives in `docs/`, renamed from `pages/`,** because GitHub Pages
+    covers README.md, PROJECT-STATE.md and DEPLOY.md.
+34. **(2026-09-22, superseded by 35) The web version lived in `docs/`, renamed from `pages/`,** because GitHub Pages
     can only publish a repository's root or a folder named `docs`. Set Pages to the main branch
     and `/docs`. Only files inside `docs/` are published, so `ui.html` and the other sources
     never reach the website. `.gitignore` keeps out `node_modules/`, the generated
     `polyglot.html`, and the design-review screenshot scripts; a fresh clone runs
     `npm install && npm run build` before testing.
+35. **(2026-09-22) The repository is one flat folder, published from the root.** Decision 34 put the
+    website in `docs/`, but the owner uploads from an iPhone, where the Files picker only selects
+    files within a single folder, so nested folders could not be uploaded. Now every file sits at
+    the top level: sources, fonts (`sans.woff2`, `mono.woff2`), the website (`index.html`,
+    `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`) and the harnesses. Pages is set to
+    the main branch and "/ (root)". **Keep it flat:** a new subfolder breaks the phone workflow.
 7. **16px minimum on text-entry controls** (input/textarea/select), or iOS zooms on focus. The
    pre-flight enforces it, scoped to keyboard-summoning controls: range sliders and buttons are exempt.
 8. **(2026-08-10) Curriculum fields may not be named `size`, `length`, `Count` or `Length`**: some
@@ -183,12 +189,12 @@ Adding a language is mostly a spec plus a few hooks: not a new parser.
     the HTML and CSS panes the way a person does: which is how bug 15 surfaced at all.
 
 17. **(2026-09-11) The Pages copy is derived, never hand-maintained.** `make-pages.py` turns the
-    built single file into `docs/index.html` by swapping the inline `data:` manifest for a real
+    built single file into `index.html` by swapping the inline `data:` manifest for a real
     `manifest.json` and registering a service worker (guarded to http(s), so file:// and the
     artifact are unaffected). Insert the registration before the **last** `</body>`: the HTML/CSS
     track builds documents in JS strings, so earlier occurrences are inside code, and splicing
     there corrupts the MARKUP block. `pages-check.mjs` catches exactly that.
-18. **(2026-09-11) Bump `CACHE` in `docs/sw.js` on every deploy.** Cache-first is deliberate (a
+18. **(2026-09-11) Bump `CACHE` in `sw.js` on every deploy.** Cache-first is deliberate (a
     lesson has to work with no signal), which means a stale cache is sticky without the bump.
 
 19. **(2026-09-11) Go and PHP read input too.** PHP prints `trim(fgets(STDIN))` (an expression,
@@ -246,4 +252,4 @@ Examples are North American by request: no Urdu/Punjabi flavouring.
 - Rust and C++ both compile in this environment and would be verified like the rest.
 - **Not yet playtested by a beginner.** That is the biggest gap and the only one Claude cannot
   close: but as of 2026-09-11 there is a deployable, installable copy to hand someone
-  (`docs/`, see `docs/DEPLOY.md`), which is what that gap was waiting on.
+  (see `DEPLOY.md`), which is what that gap was waiting on.

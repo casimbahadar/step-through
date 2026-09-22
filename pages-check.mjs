@@ -11,7 +11,7 @@ const chromium = (await import('@sparticuz/chromium')).default;
 let pass = 0, fail = 0; const failures = [];
 const ok = (n, c, d) => { if (c) pass++; else { fail++; failures.push(n + (d ? ' :: ' + d : '')); } };
 
-const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), 'docs');
+const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '.');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/manifest+json', '.png': 'image/png' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);

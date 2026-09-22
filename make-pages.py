@@ -15,7 +15,7 @@ import pathlib, re, sys
 
 here = pathlib.Path(__file__).parent
 src = (here / 'polyglot.html').read_text()
-out_dir = here / 'docs'   # GitHub Pages can serve a folder only if it is named docs
+out_dir = here   # published from the repository root: one flat folder, uploadable from a phone
 
 link_re = re.compile(r'<link rel="manifest" href=\'data:application/manifest\+json,[^\']*\'>')
 if not link_re.search(src):

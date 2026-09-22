@@ -47,16 +47,18 @@ Programs that ask for typed input cannot pause halfway. Instead, every answer yo
 | `content.mjs` | The programming curriculum and the pattern drill |
 | `markup.mjs` | The HTML and CSS track |
 | `ui.html` | The page, its styles and its behaviour, with placeholders the build fills in |
-| `fonts/` | Atkinson Hyperlegible Next and Mono, embedded so the app works offline |
+| `sans.woff2`, `mono.woff2` | Atkinson Hyperlegible Next and Mono, baked into the app so it works offline |
 | `build.py` | Combines everything into `polyglot.html` |
-| `make-pages.py` | Makes the web version in `docs/` from the built file |
-| `docs/` | The website GitHub Pages publishes: `index.html`, `manifest.json`, `sw.js`, `icons/` |
-| `icons-draw.mjs` | Redraws the app icons into `docs/icons/` |
+| `make-pages.py` | Makes the web version, `index.html`, from the built file |
+| `index.html`, `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png` | The website: what GitHub Pages serves |
+| `icons-draw.mjs` | Redraws the two app icons |
 | `PROJECT-STATE.md` | Every decision that cost time to reach, and why. Read this before changing anything |
 
-`polyglot.html` and `docs/index.html` are generated. Never edit either by hand. `polyglot.html` is not committed (see `.gitignore`), while `docs/index.html` is, because GitHub Pages serves it. The build file and the storage keys keep the old name on purpose, so nobody loses their progress in the rename.
+Every file sits in one folder, with no subfolders, so the whole project can be uploaded from a phone in one go.
 
-Only `docs/` is published. `ui.html` and the other source files stay in the repository but never appear on the website.
+`polyglot.html` and `index.html` are generated. Never edit either by hand. `polyglot.html` is not committed (see `.gitignore`), while `index.html` is, because it is the website. The build file and the storage keys keep the old name on purpose, so nobody loses their progress in the rename.
+
+GitHub Pages serves `index.html` as the site. The source files are in the same folder, but nothing links to them, so visitors only ever see the app.
 
 ## Building
 
@@ -67,7 +69,7 @@ npm install
 npm run build
 ```
 
-This writes `polyglot.html` (the single file you can open directly) and `docs/index.html` (the web version). A fresh clone needs this step before the tests, since they test the built file.
+This writes `polyglot.html` (the single file you can open directly) and `index.html` (the web version). A fresh clone needs this step before the tests, since they test the built file.
 
 ## Testing
 
@@ -104,14 +106,14 @@ Kotlin 2.0.21 comes from JetBrains' GitHub releases, unzipped to `/opt/kotlinc`,
 
 ## Publishing on GitHub Pages
 
-1. In the repository's Settings, open Pages, and choose your main branch and the `/docs` folder.
-2. Before every later update, run `npm run build`, then raise the version in `docs/sw.js` (for example `polyglot-v2` to `polyglot-v3`). Without that, people who installed the app keep their old copy.
+1. In the repository's Settings, open Pages, choose "Deploy from a branch", then your main branch and "/ (root)".
+2. Before every later update, run `npm run build`, then raise the version in `sw.js` (for example `polyglot-v2` to `polyglot-v3`). Without that, people who installed the app keep their old copy.
 
-`docs/DEPLOY.md` has the details, including how to install it on iPhone and Android.
+`DEPLOY.md` has the details, including how to install it on iPhone and Android.
 
 ## Credits
 
-- Fonts: Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono by the Braille Institute, under the SIL Open Font License (`fonts/LICENSE-OFL.txt`). They were chosen because they keep easily confused characters apart, like l, 1 and I, or O and 0.
+- Fonts: Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono by the Braille Institute, under the SIL Open Font License (`LICENSE-OFL.txt`). They were chosen because they keep easily confused characters apart, like l, 1 and I, or O and 0.
 - Author: Casim ([github.com/casimbahadar](https://github.com/casimbahadar)).
 
 No licence has been chosen for the code yet.

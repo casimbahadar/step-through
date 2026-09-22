@@ -16,7 +16,7 @@ try{
       x.fillStyle='#1C2433'; x.fillRect(u*3.5,u*7.45,u*9,u*1.1);
       return c.toDataURL('image/png');
     }, size);
-    fs.writeFileSync('docs/icons/icon-'+size+'.png', Buffer.from(url.split(',')[1],'base64'));
+    fs.writeFileSync('icon-'+size+'.png', Buffer.from(url.split(',')[1],'base64'));
   }
   console.log('icons redrawn');
 } finally { await b.close(); }

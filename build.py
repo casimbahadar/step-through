@@ -29,10 +29,10 @@ for ph, blk in (('/*__CORE__*/', core), ('/*__GAME__*/', game),
         sys.exit('placeholder %s not found in ui.html' % ph)
     ui = ui.replace(ph, blk)
 
-# Fonts are inlined so the file still works with no network (OFL, see fonts/LICENSE-OFL.txt)
+# Fonts are inlined so the file still works with no network (OFL, see LICENSE-OFL.txt)
 import base64
 def face(family, fname):
-    data = base64.b64encode((here / 'fonts' / fname).read_bytes()).decode()
+    data = base64.b64encode((here / fname).read_bytes()).decode()
     return ("@font-face{font-family:'%s';src:url(data:font/woff2;base64,%s) format('woff2');"
             "font-weight:200 800;font-style:normal;font-display:swap}" % (family, data))
 if '/*__FONTS__*/' not in ui:
