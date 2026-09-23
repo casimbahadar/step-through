@@ -147,6 +147,28 @@ Adding a language is mostly a spec plus a few hooks: not a new parser.
     the top level: sources, fonts (`sans.woff2`, `mono.woff2`), the website (`index.html`,
     `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`) and the harnesses. Pages is set to
     the main branch and "/ (root)". **Keep it flat:** a new subfolder breaks the phone workflow.
+36. **(2026-09-22) A solved task always offers Next.** Reported from the live site: after a correct
+    answer there was no way forward except tapping the task bars, which had no label and were a
+    358 by 6 pixel strip. Now a "Next task" button becomes the main action once a task is solved
+    (Run and Check drop to secondary, Hint hides). Its target is the next task, then any task in
+    the lesson still open ("Finish task 1"), then "Next lesson" once the lesson unlocks the next.
+    The HTML and CSS track has the same button. The task bars are real 44px buttons labelled
+    "Task 2 of 3, done" that open that task directly. ui-browser tests the whole flow, including
+    skipping ahead; preflight now measures any element with a tap handler, not only real buttons,
+    and was shown to flag the old bars. `sw.js` is at `polyglot-v3` for this update.
+37. **(2026-09-22) The owner's icon replaces the drawn one.** The supplied artwork was a rounded tile
+    with a bevel and a drop shadow, sitting off-centre on a grey background, which a phone's own
+    rounding would have left as grey slivers. It was made full bleed once: the tile outline was
+    traced, a margin plus the bevel trimmed, and the outside filled by extending the tile's own navy
+    (touching the image edge at top and left meant a fixed margin was needed as well as erosion).
+    The result is `icon-source.png`; `make-icons.py` makes every size from it. Android's maskable
+    icon is its own file with the artwork at 70% on the navy field, since the old manifest marked the
+    full-bleed icon as maskable and Android would have cropped it. The web build now links
+    `apple-touch-icon.png` (180px). The manifest `name` is "Step Through": the owner's iPhone
+    labelled the home-screen icon "StepThrough:Le...", the full name, despite
+    `apple-mobile-web-app-title`, so the manifest name is the likeliest source (not verifiable off
+    a real iPhone). pages-check verifies every icon's real pixel size. `sw.js` is at `polyglot-v4`.
+    `icons-draw.mjs` is gone; it would have overwritten this icon with the old drawn one.
 7. **16px minimum on text-entry controls** (input/textarea/select), or iOS zooms on focus. The
    pre-flight enforces it, scoped to keyboard-summoning controls: range sliders and buttons are exempt.
 8. **(2026-08-10) Curriculum fields may not be named `size`, `length`, `Count` or `Length`**: some

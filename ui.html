@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Step Through">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Step Through: Learn to Code","short_name":"Step Through","start_url":".","display":"standalone","background_color":"%23F2F4F7","theme_color":"%23F2F4F7"}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Step Through","short_name":"Step Through","start_url":".","display":"standalone","background_color":"%23F2F4F7","theme_color":"%23F2F4F7"}'>
 <title>Step Through: Learn to Code</title>
 <style>
   /*__FONTS__*/
@@ -167,7 +167,8 @@
 
   .taskhead{padding:14px 16px 12px;position:sticky;top:0;z-index:3;background:var(--paper);border-bottom:1.5px solid var(--rule)}
   .taskhead .p{max-height:26vh;overflow-y:auto;font-size:16.5px;line-height:1.45;color:var(--ink);font-weight:600}
-  .dots{display:flex;gap:6px;margin-bottom:10px}
+  .dots{display:flex;gap:0;margin:-12px 0 -2px -9px}
+  .dots button{min-width:var(--tap);min-height:var(--tap);display:grid;place-items:center;padding:0}
   .dots i{width:26px;height:6px;border-radius:3px;background:var(--rule);display:block}
   .dots i[data-done="true"]{background:var(--good)}
   .dots i[data-current="true"]{background:var(--mark);box-shadow:inset 0 0 0 1.5px var(--on-mark)}
@@ -373,6 +374,7 @@
 <div class="tokenbar" id="tokenbar" style="display:none"></div>
 
 <div class="controls" id="markupControls" style="display:none">
+  <button class="primary" id="mNext" hidden>Next task</button>
   <button class="primary" id="mCheck">Check</button>
   <button class="ghost" id="mHint">Hint</button>
   <button class="danger" id="mReveal">Show me</button>
@@ -380,6 +382,7 @@
 </div>
 
 <div class="controls" id="buildControls" style="display:none">
+  <button class="primary" id="btnNext" hidden>Next task</button>
   <button class="primary" id="btnRun">Run</button>
   <button class="ghost" id="btnCheck">Check</button>
   <button class="ghost" id="btnHint">Hint</button>
@@ -873,8 +876,11 @@ function renderQuizDone(){
 function progressOf(id){ return S.progress[id] || { stars:0, done:false }; }
 function starStr(n){ return '★★★'.slice(0,n) + '<span class="off">'+'★★★'.slice(n)+'</span>'; }
 function renderDots(){
-  $('taskDots').innerHTML = L().tasks.map((t,i)=>
-    '<i data-done="'+progressOf(t.id).done+'" data-current="'+(i===S.taskIndex)+'"></i>').join('');
+  const n = L().tasks.length;
+  $('taskDots').innerHTML = L().tasks.map((t,i)=>{
+    const done = progressOf(t.id).done;
+    return '<button data-t="'+i+'" aria-label="Task '+(i+1)+' of '+n+(done?', done':'')+'"'+(i===S.taskIndex?' aria-current="true"':'')+'>'+
+      '<i data-done="'+done+'" data-current="'+(i===S.taskIndex)+'"></i></button>'; }).join('');
 }
 function renderViewNote(){
   if(unavailableHere()){
@@ -899,8 +905,41 @@ function renderViewNote(){
   $('btnToQuiz').disabled = on;
 }
 
+function nextStep(){
+  const tasks = L().tasks;
+  if(S.taskIndex < tasks.length - 1) return { label:'Next task', go:()=>loadTask(S.taskIndex + 1) };
+  const open = tasks.findIndex(t => t.expect && !progressOf(t.id).done);
+  if(open >= 0) return { label:'Finish task ' + (open + 1), go:()=>loadTask(open) };
+  const ni = S.lessonIndex + 1;
+  if(ni < LESSONS.length && unlocked(ni)) return { label:'Next lesson', go:()=>loadLesson(ni) };
+  return null;
+}
+function nextMarkupStep(){
+  const tasks = ML().tasks;
+  if(S.mTask < tasks.length - 1) return { label:'Next task', go:()=>loadMarkupTask(S.mTask + 1) };
+  const open = tasks.findIndex(t => !progressOf(t.id).done);
+  if(open >= 0) return { label:'Finish task ' + (open + 1), go:()=>loadMarkupTask(open) };
+  if(S.mLesson + 1 < MARKUP_LESSONS.length) return { label:'Next lesson', go:()=>setMarkupLesson(S.mLesson + 1) };
+  return null;
+}
+/* Once a task is solved, Next becomes the main action and hints step aside. */
+function updateNext(){
+  const t = T(), done = !!(t.expect && progressOf(t.id).done), n = done ? nextStep() : null;
+  $('btnNext').hidden = !n;
+  if(n) $('btnNext').textContent = n.label;
+  $('btnRun').className = n ? 'ghost' : 'primary';
+  $('btnHint').style.display = n ? 'none' : '';
+}
+function updateMarkupNext(){
+  const done = progressOf(MT().id).done, n = done ? nextMarkupStep() : null;
+  $('mNext').hidden = !n;
+  if(n) $('mNext').textContent = n.label;
+  $('mCheck').className = n ? 'ghost' : 'primary';
+  $('mHint').style.display = n ? 'none' : '';
+}
 function renderBuild(){
   renderDots();
+  updateNext();
   const t = T(), p = progressOf(t.id);
   $('taskPrompt').innerHTML = esc(t.prompt) + (p.done ? ' <span class="stars">'+starStr(p.stars)+'</span>' : '');
   $('btnCheck').disabled = !t.expect;
@@ -1036,8 +1075,12 @@ function loadMarkupTask(i){
 }
 function renderMarkup(){
   const t = MT(), pr = progressOf(t.id);
-  $('mDots').innerHTML = ML().tasks.map((x,i)=>
-    '<i data-done="'+progressOf(x.id).done+'" data-current="'+(i===S.mTask)+'"></i>').join('');
+  const mn = ML().tasks.length;
+  $('mDots').innerHTML = ML().tasks.map((x,i)=>{
+    const done = progressOf(x.id).done;
+    return '<button data-t="'+i+'" aria-label="Task '+(i+1)+' of '+mn+(done?', done':'')+'"'+(i===S.mTask?' aria-current="true"':'')+'>'+
+      '<i data-done="'+done+'" data-current="'+(i===S.mTask)+'"></i></button>'; }).join('');
+  updateMarkupNext();
   $('mPrompt').innerHTML = esc(t.prompt) + (pr.done ? ' <span class="stars">'+starStr(pr.stars)+'</span>' : '');
   $('paneHtml').setAttribute('aria-pressed', String(S.mPane === 'html'));
   $('paneCss').setAttribute('aria-pressed', String(S.mPane === 'css'));
@@ -1367,7 +1410,8 @@ $('btnPlay').onclick = ()=>{
   $('btnPlay').textContent = '❙❙';
   S.playing = setInterval(()=>{ if(S.step >= max){ stopPlay(); return; } setStep(S.step+1); }, 260);
 };
-$('taskDots').onclick = ()=>loadTask((S.taskIndex + 1) % L().tasks.length);
+$('taskDots').onclick = e=>{ const b = e.target.closest('button[data-t]'); if(b) loadTask(+b.dataset.t); };
+$('btnNext').onclick = ()=>{ const n = nextStep(); if(n) n.go(); };
 $('tokenbar').onclick = e=>{ const b = e.target.closest('button'); if(b) insertToken((TOKENS[S.lang]||[])[parseInt(b.dataset.i,10)]); };
 $('btnLessons').onclick = ()=>{ $('drawer').dataset.open = 'true'; };
 $('paneHtml').onclick = ()=>{ S.mPane='html'; renderMarkup(); };
@@ -1380,7 +1424,8 @@ $('mCheck').onclick = markupCheck;
 $('mHint').onclick = ()=>{ if(S.mHint < (MT().hints||[]).length) S.mHint++; renderMarkup(); };
 $('mReveal').onclick = ()=>{ S.mRevealed = true; S.mHtml = MT().solution.html; S.mCss = MT().solution.css; renderMarkup(); };
 $('mReset').onclick = ()=>loadMarkupTask(S.mTask);
-$('mDots').onclick = ()=>loadMarkupTask((S.mTask + 1) % ML().tasks.length);
+$('mDots').onclick = e=>{ const b = e.target.closest('button[data-t]'); if(b) loadMarkupTask(+b.dataset.t); };
+$('mNext').onclick = ()=>{ const n = nextMarkupStep(); if(n) n.go(); };
 
 $('drawer').onclick = e=>{
   const dr = e.target.closest('#btnDrill');

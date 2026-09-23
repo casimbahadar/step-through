@@ -36,6 +36,12 @@ Never edit `index.html` by hand. It is generated from the source files.
 
 Once installed it works offline.
 
+## Changing the icon
+
+Replace `icon-source.png` with a 1024 by 1024 square that is the icon's own colour right to the edges, with no rounded corners and no shadow. Phones round the corners themselves. Then run `python3 make-icons.py`, raise the version in `sw.js`, and upload the four icon files, `icon-source.png` and `sw.js`.
+
+A phone keeps the icon and name it had when the app was added to the home screen. To see a new icon or name, remove the app from the home screen and add it again from Safari.
+
 ## Where progress lives
 
 In the browser on that device, under `polyglot:v2`. There is no account and nothing is sent anywhere. The key keeps its old name on purpose so the rename did not reset anyone's progress.

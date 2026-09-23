@@ -20,7 +20,8 @@ out_dir = here   # published from the repository root: one flat folder, uploadab
 link_re = re.compile(r'<link rel="manifest" href=\'data:application/manifest\+json,[^\']*\'>')
 if not link_re.search(src):
     sys.exit('inline manifest link not found in polyglot.html — did build.py run?')
-src = link_re.sub('<link rel="manifest" href="manifest.json">', src)
+src = link_re.sub('<link rel="manifest" href="manifest.json">\n'
+                  '<link rel="apple-touch-icon" href="apple-touch-icon.png">', src)
 
 REGISTER = """<script>
 /* Registered only over http(s): opened as a file:// page there is no service

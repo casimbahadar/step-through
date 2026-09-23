@@ -50,8 +50,9 @@ Programs that ask for typed input cannot pause halfway. Instead, every answer yo
 | `sans.woff2`, `mono.woff2` | Atkinson Hyperlegible Next and Mono, baked into the app so it works offline |
 | `build.py` | Combines everything into `polyglot.html` |
 | `make-pages.py` | Makes the web version, `index.html`, from the built file |
-| `index.html`, `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png` | The website: what GitHub Pages serves |
-| `icons-draw.mjs` | Redraws the two app icons |
+| `index.html`, `manifest.json`, `sw.js` | The website: what GitHub Pages serves |
+| `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `icon-maskable-512.png` | The app icons: normal, iPhone home screen, and Android's croppable version |
+| `icon-source.png`, `make-icons.py` | The 1024px master icon, and the script that makes every size from it (needs Pillow) |
 | `PROJECT-STATE.md` | Every decision that cost time to reach, and why. Read this before changing anything |
 
 Every file sits in one folder, with no subfolders, so the whole project can be uploaded from a phone in one go.

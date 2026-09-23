@@ -52,6 +52,23 @@ try {
   ok('manifest/standalone', man.display === 'standalone', man.display);
   ok('manifest/icons-resolve', man.icons >= 2 && man.iconOk, JSON.stringify(man));
 
+  /* every icon is a real PNG of the size it claims, Android gets a croppable one, iPhone gets its own */
+  const icons = await page.evaluate(async () => {
+    const pngSize = async url => { const r = await fetch(url); if (!r.ok) return null;
+      const d = new DataView(await r.arrayBuffer());
+      if (d.getUint32(0) !== 0x89504e47) return 'not a png';
+      return d.getUint32(16) + 'x' + d.getUint32(20); };
+    const j = await (await fetch('manifest.json')).json();
+    const listed = [];
+    for (const i of j.icons) listed.push({ src: i.src, claims: i.sizes, purpose: i.purpose, real: await pngSize(i.src) });
+    const touch = document.querySelector('link[rel="apple-touch-icon"]');
+    return { name: j.name, listed, touch: touch && touch.getAttribute('href'), touchReal: touch ? await pngSize(touch.getAttribute('href')) : null };
+  });
+  ok('icons/each-is-the-size-it-claims', icons.listed.every(i => i.real === i.claims), JSON.stringify(icons.listed));
+  ok('icons/android-has-a-maskable', icons.listed.some(i => i.purpose === 'maskable' && i.src !== 'icon-512.png'), JSON.stringify(icons.listed));
+  ok('icons/iphone-touch-icon-180', icons.touch === 'apple-touch-icon.png' && icons.touchReal === '180x180', icons.touch + ' ' + icons.touchReal);
+  ok('icons/home-screen-name-fits', icons.name.length <= 12, '"' + icons.name + '" is ' + icons.name.length + ' characters');
+
   /* progress must survive a reload through localStorage — window.storage does not exist here */
   ok('storage/no-artifact-bridge', await page.evaluate(() => !window.storage), 'window.storage unexpectedly present');
   await page.evaluate(() => {

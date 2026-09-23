@@ -36,7 +36,11 @@ async function overflow() {
   return page.evaluate(() => ({ scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth }));
 }
 async function tapTargets() {
-  return page.evaluate(() => [...document.querySelectorAll('button, a, select, input')]
+  // anything that answers a tap counts, not just real buttons: the task bars were a plain div with a
+  // click handler, too small for a thumb, and this check could not see them
+  return page.evaluate(() => [...document.querySelectorAll('button, a, select, input, *')]
+    .filter(el => el.matches('button, a, select, input') || typeof el.onclick === 'function')
+    .filter((el, i, all) => !(typeof el.onclick === 'function' && el.querySelector('button, a, select, input')))
     .filter(el => el.offsetParent !== null)
     .map(el => ({ id: el.id || el.tagName, h: el.getBoundingClientRect().height, w: el.getBoundingClientRect().width }))
     .filter(t => t.h > 0));

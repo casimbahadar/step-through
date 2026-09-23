@@ -91,6 +91,65 @@ ok('markup/css-pane-live', await page.evaluate(() => {
   return h1 && f.contentWindow.getComputedStyle(h1).color === 'rgb(9, 9, 9)';
 }), 'the CSS pane did not affect the preview');
 
+/* ---------- moving on after a correct answer (reported from the live site) ---------- */
+{
+  const solve = async (code) => page.evaluate(c => {
+    const e = document.getElementById('editor'); e.value = c;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('btnCheck').click();
+  }, code);
+  const next = () => page.evaluate(() => { const b = document.getElementById('btnNext');
+    return { shown: !b.hidden, label: b.textContent, runIsPrimary: document.getElementById('btnRun').className === 'primary' }; });
+  await page.evaluate(() => { for (const k of Object.keys(window.S.progress)) delete window.S.progress[k];
+    window.loadLesson(0); window.setPhase('build'); window.loadTask(0); });
+  let n = await next();
+  ok('next/hidden-before-solving', !n.shown && n.runIsPrimary, JSON.stringify(n));
+  await solve('print("Good morning!")');
+  n = await next();
+  ok('next/appears-after-solving', n.shown && n.label === 'Next task' && !n.runIsPrimary, JSON.stringify(n));
+  await page.evaluate(() => document.getElementById('btnNext').click());
+  ok('next/opens-task-2', await page.evaluate(() => window.S.taskIndex === 1 && document.getElementById('btnNext').hidden), 'did not move to task 2');
+  await solve('print("Coffee")\nprint("Bagel")');
+  await page.evaluate(() => document.getElementById('btnNext').click());
+  await solve('print("Latte")');
+  n = await next();
+  ok('next/last-task-offers-next-lesson', n.shown && n.label === 'Next lesson', JSON.stringify(n));
+  await page.evaluate(() => document.getElementById('btnNext').click());
+  ok('next/opens-lesson-2-at-learn', await page.evaluate(() => window.S.lessonIndex === 1 && window.S.phase === 'learn'),
+    await page.evaluate(() => window.S.lessonIndex + '/' + window.S.phase));
+
+  /* skipping ahead with the task bars, then finishing: Next goes back to the task still open */
+  await page.evaluate(() => { window.setPhase('build'); document.querySelector('#taskDots button[data-t="2"]').click(); });
+  ok('bars/jump-to-task-3', await page.evaluate(() => window.S.taskIndex === 2), 'task bar did not open task 3');
+  await solve(await page.evaluate(() => window.LESSONS[1].tasks[2].solution));
+  n = await next();
+  ok('next/points-at-skipped-task', n.shown && n.label === 'Finish task 1', JSON.stringify(n));
+  const bars = await page.evaluate(() => [...document.querySelectorAll('#taskDots button')].map(b => ({
+    label: b.getAttribute('aria-label'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height })));
+  ok('bars/labelled-buttons', bars.length === 3 && bars[0].label === 'Task 1 of 3' && /done/.test(bars[2].label), JSON.stringify(bars));
+  ok('bars/thumb-sized', bars.every(b => b.w >= 44 && b.h >= 44), JSON.stringify(bars));
+}
+
+/* ---------- the HTML and CSS track gets the same Next ---------- */
+{
+  await page.evaluate(() => { delete window.S.progress['html-1']; window.setMarkupLesson(0); window.setPhase('build'); });
+  ok('mnext/hidden-before-solving', await page.evaluate(() => document.getElementById('mNext').hidden), 'shown too early');
+  await page.evaluate(() => {
+    const t = window.MARKUP_LESSONS[0].tasks[0];
+    document.getElementById('paneHtml').click();
+    const e = document.getElementById('mEditor'); e.value = t.solution.html; e.dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('paneCss').click();
+    const c = document.getElementById('mEditor'); c.value = t.solution.css; c.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.evaluate(() => document.getElementById('mCheck').click());
+  await new Promise(r => setTimeout(r, 400));
+  const m = await page.evaluate(() => ({ shown: !document.getElementById('mNext').hidden, label: document.getElementById('mNext').textContent }));
+  ok('mnext/appears-after-solving', m.shown && m.label === 'Next task', JSON.stringify(m));
+  await page.evaluate(() => document.getElementById('mNext').click());
+  ok('mnext/opens-task-2', await page.evaluate(() => window.S.mTask === 1), 'did not move to task 2');
+}
+
 ok('boot/still-no-errors', errors.length === 0, errors.slice(0, 2).join(' | '));
 await browser.close();
 

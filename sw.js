@@ -1,7 +1,7 @@
 /* Step Through offline shell. The app is one file, so the cache is tiny: bump
    CACHE when you deploy a new build and the old one is dropped on activate. */
-const CACHE = 'polyglot-v2';
-const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'polyglot-v4';
+const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
