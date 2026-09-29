@@ -20,8 +20,30 @@ out_dir = here   # published from the repository root: one flat folder, uploadab
 link_re = re.compile(r'<link rel="manifest" href=\'data:application/manifest\+json,[^\']*\'>')
 if not link_re.search(src):
     sys.exit('inline manifest link not found in polyglot.html — did build.py run?')
-src = link_re.sub('<link rel="manifest" href="manifest.json">\n'
-                  '<link rel="apple-touch-icon" href="apple-touch-icon.png">', src)
+# Icons are fetched as "icon.png?v=N", where N is the CACHE version in sw.js. GitHub's servers,
+# the app's offline copy and iOS itself all remember old icons; a new address defeats all three.
+# Raising the version in sw.js is already the step for every update, so the icons follow for free.
+ver_m = re.search(r"const CACHE = 'polyglot-v(\d+)'", (here / 'sw.js').read_text())
+if not ver_m:
+    sys.exit("could not read the CACHE version from sw.js")
+V = ver_m.group(1)
+ICONS = ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png']
+
+src = link_re.sub('<link rel="manifest" href="manifest.json?v=%s">\n'
+                  '<link rel="apple-touch-icon" href="apple-touch-icon.png?v=%s">' % (V, V), src)
+
+# keep manifest.json and the offline precache list pointing at the same versioned addresses
+import json
+man_path = here / 'manifest.json'
+man = json.loads(man_path.read_text())
+for icon in man['icons']:
+    icon['src'] = icon['src'].split('?')[0] + '?v=' + V
+man_path.write_text(json.dumps(man, indent=2) + '\n')
+sw_path = here / 'sw.js'
+sw = sw_path.read_text()
+shell = "const SHELL = ['./', './index.html', './manifest.json?v=%s', %s];" % (V, ', '.join("'./%s?v=%s'" % (n, V) for n in ICONS))
+sw = re.sub(r"const SHELL = \[[^\]]*\];", shell, sw)
+sw_path.write_text(sw)
 
 REGISTER = """<script>
 /* Registered only over http(s): opened as a file:// page there is no service

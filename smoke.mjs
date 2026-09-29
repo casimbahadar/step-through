@@ -75,7 +75,8 @@ ok('hints/one-at-a-time', $('hintBox').querySelectorAll('.hintbox > div').length
 click($('btnHint'));
 ok('hints/climbs', $('hintBox').querySelectorAll('.hintbox > div').length === 2, 'ladder did not climb');
 ok('hints/exhausted-disables', $('btnHint').disabled, 'hint button still enabled at top of ladder');
-ok('hints/reveal-now-offered', $('btnReveal').style.display === 'inline-block', 'reveal not offered after hints run out');
+ok('hints/reveal-now-offered', $('btnReveal').style.display !== 'none', 'reveal not offered after hints run out');
+ok('hints/hint-steps-aside-for-reveal', $('btnHint').style.display === 'none', 'Hint still shown with no hints left');
 type('print("Coffee")\nprint("Bagel")');
 click($('btnCheck'));
 ok('hints/two-stars', (w.S.progress['speak-2']||{}).stars === 2, 'stars: ' + (w.S.progress['speak-2']||{}).stars);
@@ -141,6 +142,10 @@ ok('lang/stays-put', w.S.lang === 'python', 'switched anyway');
   const langs = Array.from($('langSel').options).map(o => o.value);
   ok('lang/picker-lists-all', langs.length === 9 && langs.includes('kotlin') && langs.includes('java'), langs.join(','));
   w.loadLesson(0); w.setPhase('build'); w.loadTask(0);
+  // the broken code typed above is now a saved draft (it comes back, by design); start over the way a learner would
+  ok('drafts/broken-code-comes-back', w.S.code === 'print("unclosed', JSON.stringify(w.S.code));
+  $('btnResetTask').click();
+  ok('drafts/reset-gives-a-fresh-start', !w.S.code.includes('unclosed'), JSON.stringify(w.S.code));
   setLang('ruby');
   ok('ruby/scaffold-uses-hash-comment', $('buildCode').textContent.includes('# Write your instruction'), $('buildCode').textContent.slice(0, 50));
   type('puts "Good morning!"');

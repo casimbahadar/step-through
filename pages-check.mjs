@@ -42,7 +42,7 @@ try {
   /* the manifest is a real file here, not a data: URL, and it resolves */
   ok('manifest/linked-as-file', await page.evaluate(() =>
     (document.querySelector('link[rel=manifest]') || {}).getAttribute &&
-    document.querySelector('link[rel=manifest]').getAttribute('href') === 'manifest.json'), 'manifest link not a file');
+    /^manifest\.json(\?v=\d+)?$/.test(document.querySelector('link[rel=manifest]').getAttribute('href'))), 'manifest link not a file');
   const man = await page.evaluate(async () => {
     const r = await fetch('manifest.json'); const j = await r.json();
     const icon = await fetch(j.icons[0].src);
@@ -66,7 +66,11 @@ try {
   });
   ok('icons/each-is-the-size-it-claims', icons.listed.every(i => i.real === i.claims), JSON.stringify(icons.listed));
   ok('icons/android-has-a-maskable', icons.listed.some(i => i.purpose === 'maskable' && i.src !== 'icon-512.png'), JSON.stringify(icons.listed));
-  ok('icons/iphone-touch-icon-180', icons.touch === 'apple-touch-icon.png' && icons.touchReal === '180x180', icons.touch + ' ' + icons.touchReal);
+  ok('icons/iphone-touch-icon-180', /^apple-touch-icon\.png/.test(icons.touch || '') && icons.touchReal === '180x180', icons.touch + ' ' + icons.touchReal);
+  /* every icon address carries the sw.js version, so no cache anywhere can hand back an old picture */
+  const swVersion = (fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').match(/const CACHE = 'polyglot-v(\d+)'/) || [])[1];
+  const tags = [icons.touch].concat(icons.listed.map(i => i.src)).map(u => (String(u).match(/\?v=(\d+)$/) || [])[1]);
+  ok('icons/versioned-like-sw', !!swVersion && tags.every(t => t === swVersion), 'sw v' + swVersion + ' vs ' + JSON.stringify(tags));
   ok('icons/home-screen-name-fits', icons.name.length <= 12, '"' + icons.name + '" is ' + icons.name.length + ' characters');
 
   /* progress must survive a reload through localStorage — window.storage does not exist here */
@@ -98,6 +102,9 @@ try {
     !!document.getElementById('lessonTitle').textContent), 'offline reload rendered nothing');
   ok('offline/curriculum-present', await page.evaluate(() => window.LESSONS && window.LESSONS.length >= 30),
     'lessons missing offline');
+  ok('offline/icons-cached-under-versioned-address', await page.evaluate(async () => {
+    const t = document.querySelector('link[rel="apple-touch-icon"]').getAttribute('href');
+    try { const r = await fetch(t); return r.ok; } catch (e) { return false; } }), 'the versioned touch icon did not load offline');
   ok('offline/progress-still-there', await page.evaluate(() => !!(window.S.progress['speak-1'] || {}).done),
     'progress lost offline');
   await page.setOfflineMode(false);

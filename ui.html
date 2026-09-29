@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Content-Security-Policy: nothing may load from, or be sent to, another site. The page is one file,
+     so inline script and style are allowed; lessons only use embedded (data:) images. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'self'; manifest-src 'self' data:; worker-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <script>
   /* Runs before the page draws. localStorage is readable here on a web server or
      a local file; inside a Claude artifact it is blocked, and the choice arrives a
@@ -79,56 +82,55 @@
   button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
   button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   /* small labels: sentence case, never tracked capitals */
-  .eyebrow{font-size:13px;font-weight:600;color:var(--slate);letter-spacing:0}
+  .eyebrow{font-size:14px;font-weight:600;color:var(--slate);letter-spacing:0}
 
-  header{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--paper)}
+  header{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--paper)}
   .mark{display:flex;align-items:baseline;margin-right:auto;min-width:0}
   .mark b{font-size:clamp(16px,5vw,21px);font-weight:750;letter-spacing:-.02em;white-space:nowrap}
   .mark span{display:none}
-  select.langsel,.langsel{font-family:var(--mono);font-size:16px;padding:0 10px;min-height:var(--tap);border:1.5px solid var(--rule);
+  select.langsel,.langsel{font-family:var(--mono);font-size:16px;padding:0 8px;min-height:var(--tap);border:1.5px solid var(--rule);
     border-radius:8px;background:var(--sheet);color:var(--ink);appearance:none;text-align:center}
   .iconbtn{border:1.5px solid var(--rule);border-radius:8px;width:var(--tap);height:var(--tap);display:grid;place-items:center;
     font-size:18px;color:var(--ink);background:var(--sheet)}
 
   /* Learn, Predict, Build is a real sequence, so it is numbered */
-  .rail{display:flex;align-items:center;gap:4px;padding:0 10px 8px;background:var(--paper);border-bottom:1.5px solid var(--rule);counter-reset:phase}
-  .rail .phase{flex:0 0 auto;counter-increment:phase;font-size:15px;font-weight:600;padding:0 12px;border-radius:8px;
+  .rail{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 12px 8px;background:var(--paper);border-bottom:1.5px solid var(--rule);counter-reset:phase}
+  .rail .phase{min-width:0;counter-increment:phase;font-size:15px;font-weight:600;padding:0 8px;white-space:nowrap;border-radius:8px;
     color:var(--slate);min-height:var(--tap)}
-  /* narrow phones: the name, three phases and the score must each stay on one line */
-  @media (max-width:360px){ .rail{gap:0} .rail .phase{padding:0 8px} }
   .rail .phase::before{content:counter(phase) "  ";color:var(--slate-2);font-weight:500;white-space:pre}
   .rail .phase[aria-selected="true"]{background:var(--mark);color:var(--on-mark)}
   .rail .phase[aria-selected="true"]::before{color:var(--on-mark)}
-  .score{margin-left:auto;display:flex;gap:10px;align-items:baseline;font-size:14px;color:var(--slate);padding-right:4px;white-space:nowrap}
+  .lessonmeta{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .score{margin-left:auto;display:flex;gap:8px;align-items:baseline;font-size:14px;color:var(--slate);padding-right:4px;white-space:nowrap}
   .score b{color:var(--ink);font-size:15px;font-weight:700}
   .score .streak{color:var(--good)}
 
-  .lessonbar{padding:16px 16px 14px;background:var(--paper)}
+  .lessonbar{padding:16px 16px 16px;background:var(--paper)}
   .lessonbar h1{margin:2px 0 4px;font-size:26px;line-height:1.15;font-weight:750;letter-spacing:-.02em}
   .lessonbar p{margin:0;font-size:16px;color:var(--slate)}
   /* the standard name, so a learner can search for it once they leave the app */
-  .lessonbar p.known{margin-top:6px;font-size:15px}
+  .lessonbar p.known{margin-top:8px;font-size:15px}
   .lessonbar p.known b{color:var(--ink);font-weight:700}
 
   main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
   section{display:none;padding:0 0 24px}
   section[data-open="true"]{display:block}
 
-  .teach{padding:6px 16px 4px;max-width:40em}
+  .teach{padding:8px 16px 4px;max-width:40em}
   .teach .blk{margin-bottom:20px}
-  .teach h3{margin:0 0 4px;font-size:17px;line-height:1.3;font-weight:700;color:var(--ink)}
+  .teach h2{margin:0 0 4px;font-size:17px;line-height:1.3;font-weight:700;color:var(--ink)}
   .teach p{margin:0;font-size:16px;color:var(--ink-soft);line-height:1.6}
-  .practice{margin:4px 16px 22px;padding:14px 0 0;border-top:1.5px solid var(--rule);max-width:40em}
+  .practice{margin:4px 16px 24px;padding:16px 0 0;border-top:1.5px solid var(--rule);max-width:40em}
   .practice .eyebrow{color:var(--good)}
-  .practice h3{margin:2px 0 4px;font-size:17px;font-weight:700}
+  .practice h2{margin:2px 0 4px;font-size:17px;font-weight:700}
   .practice p{margin:0;font-size:16px;color:var(--ink-soft);line-height:1.6}
-  .cardlabel{padding:0 16px 8px}
+  .cardlabel{margin:0 16px 8px}
 
   /* the code sheet: white, full bleed, ruled top and bottom */
   .surface{background:var(--sheet);color:var(--ink);border-top:1.5px solid var(--rule);border-bottom:1.5px solid var(--rule)}
-  .codelines{font-family:var(--mono);font-size:15.5px;line-height:1.7;padding:10px 0 12px}
-  .row{display:flex;align-items:flex-start;padding:0 14px 0 0;position:relative}
-  .row .n{flex:0 0 36px;text-align:right;padding-right:12px;color:var(--slate-2);font-size:13px;user-select:none}
+  .codelines{font-family:var(--mono);font-size:15.5px;line-height:1.7;padding:8px 0 12px}
+  .row{display:flex;align-items:flex-start;padding:0 16px 0 0;position:relative}
+  .row .n{flex:0 0 36px;text-align:right;padding-right:12px;color:var(--slate-2);font-size:14px;user-select:none}
   .row .src{white-space:pre-wrap;word-break:break-word;flex:1;min-width:0}
   /* the running line keeps light-theme syntax colours: they are what reads on yellow */
   .row.lit{background:var(--mark);color:var(--on-mark);
@@ -141,23 +143,23 @@
   .tok-str{color:var(--tok-str)}
   .tok-num{color:var(--tok-num)}
   .tok-com{color:var(--slate-2)}
-  .caption{padding:10px 16px 0;color:var(--slate);font-size:14.5px;max-width:40em}
+  .caption{margin:8px 16px 0;color:var(--slate);font-size:14.5px;max-width:40em}
 
   textarea.editor{width:100%;border:none;resize:none;display:block;background:var(--sheet);color:var(--ink);
-    font-family:var(--mono);font-size:16px;line-height:1.7;padding:12px 14px 16px 14px;min-height:30vh}
-  .tapedit{display:block;width:100%;text-align:left;padding:0 16px;min-height:var(--tap);background:var(--sheet);
+    font-family:var(--mono);font-size:16px;line-height:1.7;padding:12px 16px 16px 16px;min-height:30vh;min-height:30svh}
+  .tapedit{display:block;width:calc(100% - 32px);margin:0 16px;text-align:left;padding:0;min-height:var(--tap);background:var(--sheet);
     font-size:14.5px;font-weight:600;color:var(--slate);border-top:1.5px solid var(--rule-2)}
 
-  .quizhead{padding:16px 16px 6px}
+  .quizhead{padding:16px 16px 8px}
   .quizhead .q{font-size:18px;font-weight:700;line-height:1.35}
-  .statement{margin:6px 16px 0;padding:14px 16px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+  .statement{margin:8px 16px 0;padding:16px 16px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
     font-size:16px;line-height:1.55;color:var(--ink)}
-  .options{padding:14px 16px 4px;display:grid;gap:8px}
-  .opt{text-align:left;border:1.5px solid var(--rule);border-radius:8px;padding:12px 14px;background:var(--sheet);min-height:52px;
+  .options{padding:16px 16px 4px;display:grid;gap:8px}
+  .opt{text-align:left;border:1.5px solid var(--rule);border-radius:8px;padding:12px 16px;background:var(--sheet);min-height:52px;
     font-family:var(--mono);font-size:15px;white-space:pre-wrap;line-height:1.5;color:var(--ink)}
   .opt.right{border-color:var(--good);background:var(--good-bg)}
   .opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
-  .verdict{margin:14px 16px 0;padding:0 0 0 14px;border-left:3px solid var(--rule)}
+  .verdict{margin:16px 16px 0;padding:0 0 0 16px;border-left:3px solid var(--rule)}
   .verdict b{display:block;font-size:17px;margin-bottom:2px}
   .verdict.right{border-left-color:var(--good)}
   .verdict.right b{color:var(--good)}
@@ -165,9 +167,9 @@
   .verdict.wrong b{color:var(--bad)}
   .verdict p{margin:0;font-size:15.5px;color:var(--ink-soft)}
 
-  .taskhead{padding:14px 16px 12px;position:sticky;top:0;z-index:3;background:var(--paper);border-bottom:1.5px solid var(--rule)}
-  .taskhead .p{max-height:26vh;overflow-y:auto;font-size:16.5px;line-height:1.45;color:var(--ink);font-weight:600}
-  .dots{display:flex;gap:0;margin:-12px 0 -2px -9px}
+  .taskhead{padding:16px 16px 12px;position:sticky;top:0;z-index:3;background:var(--paper);border-bottom:1.5px solid var(--rule)}
+  .taskhead .p{max-height:26vh;max-height:26svh;overflow-y:auto;font-size:16.5px;line-height:1.45;color:var(--ink);font-weight:600}
+  .dots{display:flex;gap:0;margin:-12px 0 -2px -8px}
   .dots button{min-width:var(--tap);min-height:var(--tap);display:grid;place-items:center;padding:0}
   .dots i{width:26px;height:6px;border-radius:3px;background:var(--rule);display:block}
   .dots i[data-done="true"]{background:var(--good)}
@@ -178,53 +180,57 @@
   .hintbox div::before{content:"Hint " counter(hint);position:absolute;left:0;top:0;font-weight:700;color:var(--ink)}
   .hintbox div:last-child{margin-bottom:0}
 
-  .panebar{display:flex;gap:6px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
-  .panebar button{font-size:15px;font-weight:600;padding:0 16px;border:1.5px solid var(--rule);border-radius:8px;
+  .panebar{display:flex;gap:8px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .panebar button{flex:1 1 0;min-width:0;font-size:15px;font-weight:600;padding:0 16px;border:1.5px solid var(--rule);border-radius:8px;
     color:var(--slate);min-height:var(--tap);background:var(--sheet)}
   .panebar button[aria-pressed="true"]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
   .preview{background:#fff;border-top:1.5px solid var(--rule)}
   .preview iframe{width:100%;height:230px;border:0;display:block;background:#fff}
-  .previewlabel{font-size:13px;font-weight:600;color:var(--slate);background:var(--paper);padding:8px 16px}
+  .previewlabel{font-size:14px;font-weight:600;color:var(--slate);padding:8px 0;margin:0 16px}
   .checklist{padding:12px 16px 16px}
-  .checkrow{display:flex;gap:10px;align-items:flex-start;font-size:15px;margin-bottom:8px;color:var(--ink-soft)}
+  .checkrow{display:flex;gap:8px;align-items:flex-start;font-size:15px;margin-bottom:8px;color:var(--ink-soft)}
   .checkrow i{flex:0 0 auto;font-style:normal;font-weight:700;font-size:15px}
   .checkrow.pass i{color:var(--good)}
   .checkrow.fail i{color:var(--bad)}
   .checkrow.fail span{color:var(--bad)}
 
   /* the text adventure plays in a real console */
-  .playout{background:var(--console);padding:14px 16px;max-height:34vh;overflow-y:auto;
+  .playout{background:var(--console);padding:16px 16px;max-height:34vh;max-height:34svh;overflow-y:auto;
     font-family:var(--mono);font-size:14.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--console-fg)}
   .playout .said{color:var(--mark)}
   .playout .done{color:var(--console-ok)}
-  .playbar{display:flex;gap:8px;padding:10px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .playbar{display:flex;gap:8px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
   .playbar input{flex:1;min-width:0;background:var(--sheet);border:1.5px solid var(--rule);border-radius:8px;
     color:var(--ink);font-family:var(--mono);font-size:16px;padding:0 12px;min-height:var(--tap)}
-  .cmpbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
+  .cmpbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule)}
   .cmpbar .langsel{margin-left:auto}
-  #compare .codelines{font-size:14px;line-height:1.65;padding:8px 0 10px}
-  .viewnote{margin:12px 16px;padding:12px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+  #compare .codelines{font-size:14px;line-height:1.65;padding:8px 0 8px}
+  .viewnote{margin:12px 16px;padding:12px 16px;border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
     font-size:15px;color:var(--ink-soft)}
 
-  .tokenbar{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:var(--paper);border-top:1.5px solid var(--rule);scrollbar-width:none}
+  .tokenbar{display:flex;gap:8px;overflow-x:auto;padding:8px 16px;scroll-padding-inline:16px;background:var(--paper);border-top:1.5px solid var(--rule);scrollbar-width:none}
   .tokenbar::-webkit-scrollbar{display:none}
-  .tokenbar button{flex:0 0 auto;font-family:var(--mono);font-size:15.5px;padding:0 13px;min-height:var(--tap);min-width:var(--tap);
+  .tokenbar button{flex:0 0 auto;font-family:var(--mono);font-size:15.5px;padding:0 12px;min-height:var(--tap);min-width:var(--tap);
     border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);color:var(--ink);white-space:pre}
-  .controls{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border-top:1.5px solid var(--rule);flex-wrap:wrap}
+  .controls{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--paper);border-top:1.5px solid var(--rule);flex-wrap:wrap}
+  /* one button system: every control in a row shares the row equally; a solved task's Next gets its own full row */
+  .controls > button, .btnrow > button{flex:1 1 0;min-width:0;padding:0 8px}
+  .btnrow{display:flex;gap:8px;flex:1 1 100%;min-width:0}
+  .controls > #btnNextTask, .controls > #mNext{flex-basis:100%}
   .primary{background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:16px;padding:0 20px;border-radius:8px;min-height:48px}
   .primary:disabled{opacity:.35}
-  .ghost{border:1.5px solid var(--rule);background:var(--sheet);border-radius:8px;padding:0 15px;font-size:16px;font-weight:600;min-height:48px}
+  .ghost{border:1.5px solid var(--rule);background:var(--sheet);border-radius:8px;padding:0 16px;font-size:16px;font-weight:600;min-height:48px}
   .ghost:disabled{opacity:.4}
-  .danger{border:none;padding:0 10px;font-size:15px;color:var(--slate);min-height:48px;text-decoration:underline;text-underline-offset:3px}
+  .danger{border:none;padding:0 8px;font-size:15px;color:var(--slate);min-height:48px;text-decoration:underline;text-underline-offset:3px}
 
   .stepbar{display:flex;align-items:center;gap:8px;padding:8px 12px 4px;background:var(--paper);border-top:1.5px solid var(--rule)}
   .stepbar input[type=range]{flex:1;min-width:0;accent-color:var(--ink);min-height:var(--tap)}
   .stepbar .sq{width:var(--tap);height:var(--tap);border:1.5px solid var(--rule);border-radius:8px;display:grid;place-items:center;
     font-size:16px;background:var(--sheet);color:var(--ink)}
-  .stepmeta{font-size:14px;color:var(--slate);padding:0 14px 8px;background:var(--paper)}
+  .stepmeta{font-size:14px;color:var(--slate);padding:0 0 8px;margin:0 16px}
 
-  .readout{border-top:1.5px solid var(--rule);max-height:34vh;overflow-y:auto;background:var(--sheet)}
-  .tabs{display:flex;position:sticky;top:0;background:var(--sheet);border-bottom:1.5px solid var(--rule);z-index:1}
+  .readout{border-top:1.5px solid var(--rule);max-height:34vh;max-height:34svh;overflow-y:auto;background:var(--sheet)}
+  .tabs{display:flex;position:sticky;top:0;background:var(--sheet);padding:0 16px;border-bottom:1.5px solid var(--rule);z-index:1}
   .tabs button{flex:1;min-height:var(--tap);font-size:15px;font-weight:600;color:var(--slate);border-bottom:3px solid transparent}
   .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
   .panel{padding:12px 16px 16px;display:none}
@@ -238,10 +244,10 @@
   .slab .v{font-family:var(--mono);font-size:15px;color:var(--ink);word-break:break-all}
   .slab.changed{animation:marked 1.2s ease-out}
   @keyframes marked{from{background:var(--flash)}to{background:transparent}}
-  .framelabel{font-size:13px;font-weight:600;color:var(--slate);margin:2px 0 6px}
+  .framelabel{font-size:14px;font-weight:600;color:var(--slate);margin:2px 0 8px}
   .note{padding-left:12px;border-left:3px solid var(--rule);font-size:15px;color:var(--ink-soft)}
   .errbox{border-left:3px solid var(--bad);padding-left:12px}
-  .errbox b{display:block;font-size:16px;margin-bottom:3px;color:var(--bad)}
+  .errbox b{display:block;font-size:16px;margin-bottom:4px;color:var(--bad)}
   .errbox span{font-size:15px;color:var(--ink-soft)}
   .okbox{border-left:3px solid var(--good);padding-left:12px}
   .okbox b{display:block;font-size:16px;color:var(--good)}
@@ -251,21 +257,21 @@
   .drawer{position:fixed;inset:0;background:var(--scrim);display:none;z-index:10}
   .drawer[data-open="true"]{display:block}
   .drawer .sheet{position:absolute;right:0;top:0;bottom:0;width:min(360px,90vw);background:var(--paper);
-    border-left:1.5px solid var(--rule);overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
-  .drawer h2{font-size:24px;margin:4px 0 10px;font-weight:750;letter-spacing:-.02em}
+    border-left:1.5px solid var(--rule);overflow-y:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+  .drawer h2{font-size:24px;margin:4px 0 8px;font-weight:750;letter-spacing:-.02em}
   .drawer .eyebrow{font-size:17px;font-weight:750;color:var(--ink)}
   .drawer .eyebrow span{font-size:14px;font-weight:500}
   /* lessons are a list, not a pile of cards */
-  .lessonitem{display:block;width:100%;text-align:left;padding:11px 10px;margin:0 -10px;width:calc(100% + 20px);
+  .lessonitem{display:block;width:100%;text-align:left;padding:12px 8px;margin:0 -8px;width:calc(100% + 20px);
     border-bottom:1px solid var(--rule-2);border-radius:0;min-height:56px}
   .lessonitem[aria-current="true"]{background:var(--mark);border-radius:6px;border-bottom-color:transparent}
   .lessonitem[data-locked="true"] .t{color:var(--slate)}
   .lessonitem .t{font-size:16px;font-weight:700;color:var(--ink)}
   .lessonitem .g{font-size:14px;color:var(--slate)}
   .lessonitem[aria-current="true"] .t,.lessonitem[aria-current="true"] .g,.lessonitem[aria-current="true"] .st{color:var(--on-mark)}
-  .lessonitem .st{font-size:13.5px;color:var(--gold);font-weight:600}
-  .themepick{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
-  .themepick button{flex:1 1 auto;white-space:nowrap;padding:0 14px;min-height:var(--tap);border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
+  .lessonitem .st{font-size:14px;color:var(--gold);font-weight:600}
+  .themepick{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .themepick button{flex:1 1 0;min-width:0;white-space:nowrap;padding:0 4px;font-size:14px !important;min-height:var(--tap);border:1.5px solid var(--rule);border-radius:8px;background:var(--sheet);
     font-size:15px;font-weight:600;color:var(--ink)}
   .themepick button[aria-pressed="true"]{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
   .levelblurb{padding:8px 0 4px;font-size:14.5px;color:var(--good)}
@@ -284,11 +290,11 @@
   <button class="phase" id="phLearn" aria-selected="true">Learn</button>
   <button class="phase" id="phPredict">Predict</button>
   <button class="phase" id="phBuild">Build</button>
-  <div class="score"><span><b id="xp">0</b> XP</span><span class="streak" id="streak"></span></div>
 </div>
 
 <div class="lessonbar">
-  <div class="eyebrow" id="lessonEyebrow">Lesson 1</div>
+  <div class="lessonmeta"><div class="eyebrow" id="lessonEyebrow">Lesson 1</div>
+    <div class="score"><span><b id="xp">0</b> XP</span><span class="streak" id="streak"></span></div></div>
   <h1 id="lessonTitle"></h1>
   <p id="lessonIdea"></p>
   <p id="lessonKnown" class="known" hidden></p>
@@ -375,26 +381,30 @@
 
 <div class="controls" id="markupControls" style="display:none">
   <button class="primary" id="mNext" hidden>Next task</button>
-  <button class="primary" id="mCheck">Check</button>
-  <button class="ghost" id="mHint">Hint</button>
-  <button class="danger" id="mReveal">Show me</button>
-  <button class="danger" id="mReset">Reset</button>
+  <div class="btnrow">
+    <button class="primary" id="mCheck">Check</button>
+    <button class="ghost" id="mHint">Hint</button>
+    <button class="danger" id="mReveal">Show me</button>
+    <button class="danger" id="mReset">Reset</button>
+  </div>
 </div>
 
 <div class="controls" id="buildControls" style="display:none">
-  <button class="primary" id="btnNext" hidden>Next task</button>
-  <button class="primary" id="btnRun">Run</button>
-  <button class="ghost" id="btnCheck">Check</button>
-  <button class="ghost" id="btnHint">Hint</button>
-  <button class="danger" id="btnReveal">Show me</button>
-  <button class="danger" id="btnResetTask">Reset</button>
+  <button class="primary" id="btnNextTask" hidden>Next task</button>
+  <div class="btnrow">
+    <button class="primary" id="btnRun">Run</button>
+    <button class="ghost" id="btnCheck">Check</button>
+    <button class="ghost" id="btnHint">Hint</button>
+    <button class="danger" id="btnReveal">Show me</button>
+    <button class="danger" id="btnResetTask">Reset</button>
+  </div>
 </div>
 
 <div class="stepbar" id="stepbar" style="display:none">
-  <button class="sq" id="btnPrev" aria-label="Previous step">◀</button>
-  <button class="sq" id="btnPlay" aria-label="Play steps">▶</button>
+  <button class="sq" id="btnPrev" aria-label="Previous step"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M16 5v14L5 12z" fill="currentColor"/></svg></button>
+  <button class="sq" id="btnPlay" aria-label="Play steps"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
   <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Execution step">
-  <button class="sq" id="btnNext" aria-label="Next step">▶|</button>
+  <button class="sq" id="btnNext" aria-label="Next step"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M5 5v14l10-7zM16 5h3v14h-3z" fill="currentColor"/></svg></button>
 </div>
 <div class="stepmeta" id="stepmeta" style="display:none"></div>
 
@@ -411,7 +421,7 @@
 
 <div class="drawer" id="drawer">
   <div class="sheet">
-    <div class="eyebrow" id="themeLabel" style="margin:4px 0 6px">Appearance</div>
+    <div class="eyebrow" id="themeLabel" style="margin:4px 0 8px">Appearance</div>
     <div class="themepick" role="group" aria-labelledby="themeLabel">
       <button id="themeSystem" data-theme-choice="system">Match phone</button>
       <button id="themeLight" data-theme-choice="light">Light</button>
@@ -457,7 +467,7 @@ const S = {
 };
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const L = () => LESSONS[S.lessonIndex];
 const T = () => L().tasks[S.taskIndex];
 const pick = v => {
@@ -495,16 +505,68 @@ const STORE = {
   }
 };
 
+/* Resume where the learner left off: phones unload background tabs, so a reload must bring back
+   the lesson, task, step and language, and whatever they had typed. Saving stays off until the
+   saved place has been restored, because start-up itself opens lesson 1 and would overwrite it. */
+S.drafts = {}; S.booted = false;
+const DRAFT_LIMIT = 60, DRAFT_MAX_CHARS = 20000;
+function draftKey(){ return T().id + ':' + S.lang; }
+function saveDraft(){
+  if(S.track !== 'code' || S.viewLang) return;
+  let starter = null; try{ starter = GAME.starterFor(T(), S.lang, POLYGLOT); }catch(e){}
+  const k = draftKey();
+  delete S.drafts[k];
+  if(S.code !== starter && S.code.length <= DRAFT_MAX_CHARS) S.drafts[k] = S.code;   // newest last
+  schedulePlaceSave();
+}
+function saveMarkupDraft(){
+  const k = 'm:' + MT().id; delete S.drafts[k];
+  if(S.mHtml !== MT().scaffold.html || S.mCss !== MT().scaffold.css) S.drafts[k] = { html: S.mHtml, css: S.mCss };
+  schedulePlaceSave();
+}
+function currentPlace(){
+  const phase = (S.drillMode || S.reviewMode) ? 'learn' : S.phase;
+  return { track: S.track, lesson: (LESSONS[S.lessonIndex] || {}).id, task: S.taskIndex, phase: phase,
+           lang: S.lang, mLesson: S.mLesson, mTask: S.mTask };
+}
+let placeTimer = null;
+function schedulePlaceSave(){
+  if(!S.booted) return;
+  clearTimeout(placeTimer); placeTimer = setTimeout(saveProgress, 400);
+}
+function restorePlace(pl){
+  if(!pl) return;
+  try{
+    if(pl.lang && POLYGLOT.SPECS[pl.lang] && pl.lang !== S.lang) switchLang(pl.lang);
+    if(pl.track === 'markup' && MARKUP_LESSONS[pl.mLesson]){
+      setMarkupLesson(pl.mLesson);
+      if(pl.phase === 'build'){ setPhase('build'); if(ML().tasks[pl.mTask]) loadMarkupTask(pl.mTask); }
+    } else {
+      const i = LESSONS.findIndex(L => L.id === pl.lesson);
+      if(i >= 0 && unlocked(i)){
+        loadLesson(i);
+        if(pl.phase === 'build'){ setPhase('build'); if(LESSONS[i].tasks[pl.task]) loadTask(pl.task); }
+        else if(pl.phase === 'predict') setPhase('predict');
+      }
+    }
+  }catch(e){}
+}
 async function loadProgress(){
+  let place = null;
   try{
     const v = await STORE.get('polyglot:v2');
-    if(v){ const d = JSON.parse(v); S.progress = d.progress || {}; S.xp = d.xp || 0; }
+    if(v){ const d = JSON.parse(v); S.progress = d.progress || {}; S.xp = d.xp || 0;
+      S.drafts = (d.drafts && typeof d.drafts === 'object') ? d.drafts : {}; place = d.place || null; }
   }catch(e){}
   renderScore(); renderLessonList(); renderDots();
+  restorePlace(place);
+  S.booted = true;
 }
 async function saveProgress(){
   try{
-    await STORE.set('polyglot:v2', JSON.stringify({ progress:S.progress, xp:S.xp }));
+    const keys = Object.keys(S.drafts);
+    for(const k of keys.slice(0, Math.max(0, keys.length - DRAFT_LIMIT))) delete S.drafts[k];   // keep the newest
+    await STORE.set('polyglot:v2', JSON.stringify({ progress:S.progress, xp:S.xp, place: currentPlace(), drafts: S.drafts }));
   }catch(e){}
 }
 
@@ -579,7 +641,9 @@ function errLineNow(target){
   return (S.runTarget === target && S.result && S.result.error) ? S.result.error.line : 0;
 }
 
-function stopPlay(){ if(S.playing){ clearInterval(S.playing); S.playing = null; $('btnPlay').textContent = '▶'; } }
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>', PAUSE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>';
+function stopPlay(){ if(S.playing){ clearInterval(S.playing); S.playing = null;
+  $('btnPlay').innerHTML = PLAY_ICON; $('btnPlay').setAttribute('aria-label', 'Play steps'); } }
 
 function runSource(src, target, inputs){
   stopPlay();
@@ -691,7 +755,7 @@ function renderOutput(){
   let html = r.output.length
     ? r.output.map((l,i)=>'<div class="outline'+(i === reached-1 ? ' justprinted' : '')+'">'+esc(l)+'</div>').join('')
     : '<div class="empty">This program printed nothing.</div>';
-  if(r.error) html += '<div class="errbox" style="margin-top:10px"><b>'+esc(r.error.message)+'</b>'+(r.error.hint?'<span>'+esc(r.error.hint)+'</span>':'')+'</div>';
+  if(r.error) html += '<div class="errbox" role="status" style="margin-top:8px"><b>'+esc(r.error.message)+'</b>'+(r.error.hint?'<span>'+esc(r.error.hint)+'</span>':'')+'</div>';
   if(r.checked) html += r.checked.html;
   p.innerHTML = html;
 }
@@ -735,8 +799,8 @@ function renderLearn(){
   $('btnRunDemo').style.display = '';
   $('btnToQuiz').textContent = 'Try the quiz';
   $('teachBlocks').innerHTML = L().teach.map(b=>
-    '<div class="blk"><h3>'+esc(b.h)+'</h3><p>'+esc(pick(b.p))+'</p></div>').join('');
-  $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h3>'+esc(L().practice.h)+'</h3><p>'+esc(pick(L().practice.p))+'</p>';
+    '<div class="blk"><h2>'+esc(b.h)+'</h2><p>'+esc(pick(b.p))+'</p></div>').join('');
+  $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h2>'+esc(L().practice.h)+'</h2><p>'+esc(pick(L().practice.p))+'</p>';
   $('demoCaption').textContent = L().demo.caption;
   paintCode($('demoCode'), demoSource(), litLineNow('demo'), errLineNow('demo'));
   $('panelNote').innerHTML = '<div class="note"><b>'+esc(L().practice.h)+'</b><br>'+esc(pick(L().practice.p))+'</div>';
@@ -805,7 +869,7 @@ function renderQuestion(){
     $('qPrompt').textContent = 'No questions for this one.';
     paintCode($('qCode'), demoSource(), 0, 0);
     $('qOptions').innerHTML = '';
-    $('qVerdict').innerHTML = '<div class="verdict"><p>' + (readOnly()
+    $('qVerdict').innerHTML = '<div role="status" class="verdict"><p>' + (readOnly()
       ? POLYGLOT.SPECS[S.viewLang].name + ' cannot express this lesson, so there is nothing to predict. ' + availableSentence()
       : 'This lesson\u2019s programs are too short to ask about. Head to Build.') + '</p></div>';
     $('btnQNext').disabled = true;
@@ -837,7 +901,7 @@ function answerQuestion(i){
   });
   if(right){ S.quiz.correct++; S.streak++; award(10 + Math.min(S.streak,5) * 2); }
   else S.streak = 0;
-  $('qVerdict').innerHTML = '<div class="verdict '+(right?'right':'wrong')+'"><b>'+(right?'Right.':'Not this time.')+'</b><p>'+
+  $('qVerdict').innerHTML = '<div role="status" class="verdict '+(right?'right':'wrong')+'"><b>'+(right?'Right.':'Not this time.')+'</b><p>'+
     (right ? '' : 'The answer is: ' + esc(q.options[q.answer]) + '. ') + esc(q.explain) + '</p>'+
     (q.stepIndex != null ? '<button class="ghost" id="btnStepIt" style="margin-top:9px">Step to that moment</button>' : '')+
     '</div>';
@@ -866,7 +930,7 @@ function renderQuizDone(){
   $('qPrompt').textContent = (S.reviewMode ? 'Review: ' : '') + 'You got ' + S.quiz.correct + ' of ' + S.quiz.questions.length + '.';
   paintCode($('qCode'), demoSource(), 0, 0);
   $('qOptions').innerHTML = '';
-  $('qVerdict').innerHTML = '<div class="verdict"><b>' +
+  $('qVerdict').innerHTML = '<div role="status" class="verdict"><b>' +
     (S.quiz.correct === S.quiz.questions.length ? 'Clean sweep.' : 'Worth another look.') +
     '</b><p>Predicting what code will do is the skill underneath debugging. Play again for a fresh set, or start building.</p></div>';
   $('btnQNext').disabled = false;
@@ -925,8 +989,8 @@ function nextMarkupStep(){
 /* Once a task is solved, Next becomes the main action and hints step aside. */
 function updateNext(){
   const t = T(), done = !!(t.expect && progressOf(t.id).done), n = done ? nextStep() : null;
-  $('btnNext').hidden = !n;
-  if(n) $('btnNext').textContent = n.label;
+  $('btnNextTask').hidden = !n;
+  if(n) $('btnNextTask').textContent = n.label;
   $('btnRun').className = n ? 'ghost' : 'primary';
   $('btnHint').style.display = n ? 'none' : '';
 }
@@ -944,7 +1008,8 @@ function renderBuild(){
   $('taskPrompt').innerHTML = esc(t.prompt) + (p.done ? ' <span class="stars">'+starStr(p.stars)+'</span>' : '');
   $('btnCheck').disabled = !t.expect;
   $('btnHint').disabled = !(t.hints && t.hints.length) || S.hintLevel >= (t.hints||[]).length;
-  $('btnReveal').style.display = (t.solution && S.hintLevel >= (t.hints||[]).length && t.hints && t.hints.length) ? 'inline-block' : 'none';
+  $('btnReveal').style.display = (t.solution && S.hintLevel >= (t.hints||[]).length && t.hints && t.hints.length) ? '' : 'none';
+  if($('btnReveal').style.display !== 'none') $('btnHint').style.display = 'none';   // every hint used: Show me takes its place
   renderViewNote();
   renderHints();
   paintCode($('buildCode'), shownCode(), litLineNow('build'), errLineNow('build'));
@@ -969,6 +1034,9 @@ function loadTask(i){
   // some lessons cannot be written in some languages; the note explains rather than throwing
   try{ S.code = GAME.starterFor(T(), S.lang, POLYGLOT); }
   catch(e){ S.code = (POLYGLOT.SPECS[S.lang].comment || '#') + ' ' + (e.message || 'Not available in this language.'); }
+  const draft = S.drafts[draftKey()];
+  if(typeof draft === 'string') S.code = draft;          // what they had typed before
+  schedulePlaceSave();
   if(S.editing) setEditing(false);
   S.inputs = [];
   renderBuild(); renderStepbar(); renderOutput(); renderVars(); renderCompare(); renderPlay();
@@ -980,13 +1048,13 @@ function doCheck(){
   runSource(S.code, 'build', t.inputs);
   const r = S.result;
   if(r.error && r.error.waiting){
-    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>It is still waiting for input</b>'+
+    r.checked = { pass:false, html:'<div class="errbox" role="status" style="margin-top:8px"><b>It is still waiting for input</b>'+
       '<span>This task supplies '+((t.inputs||[]).length)+' answer'+(((t.inputs||[]).length)===1?'':'s')+
       '. Asking for more than that means the loop is not ending when it should.</span></div>' };
     renderOutput(); return;
   }
   if(r.error){
-    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>It stopped before finishing</b><span>Fix the problem above, then check again.</span></div>' };
+    r.checked = { pass:false, html:'<div class="errbox" role="status" style="margin-top:8px"><b>It stopped before finishing</b><span>Fix the problem above, then check again.</span></div>' };
     renderOutput(); return;
   }
   const norm = a => a.map(x=>String(x).replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false').replace(/\bNone\b/g,'null'));
@@ -1001,7 +1069,7 @@ function doCheck(){
     }
   }
   if(msg){
-    r.checked = { pass:false, html:'<div class="errbox" style="margin-top:10px"><b>Not there yet</b><span>'+esc(msg)+'</span></div>' };
+    r.checked = { pass:false, html:'<div class="errbox" role="status" style="margin-top:8px"><b>Not there yet</b><span>'+esc(msg)+'</span></div>' };
     renderOutput(); return;
   }
   let stars = S.revealed ? 1 : (S.hintLevel > 0 ? 2 : 3);
@@ -1027,7 +1095,7 @@ function doCheck(){
   if(stars > prev.stars) award((stars - prev.stars) * 10);
   S.progress[t.id] = { stars: Math.max(stars, prev.stars), done:true };
   saveProgress();
-  r.checked = { pass:true, html:'<div class="'+(speedOk?'okbox':'errbox')+'" style="margin-top:10px"><b>'+
+  r.checked = { pass:true, html:'<div role="status" class="'+(speedOk?'okbox':'errbox')+'" style="margin-top:8px"><b>'+
     (speedOk ? 'Correct.' : 'Correct, but too slow.')+'</b>'+
     '<div class="stars">'+starStr(stars)+'</div>'+
     (craftNote?'<span class="empty">'+esc(craftNote)+'</span>':'')+speedNote+'</div>' };
@@ -1071,7 +1139,10 @@ function renderPreview(html, css){
 function loadMarkupTask(i){
   S.mTask = i; S.mHint = 0; S.mRevealed = false; S.mPane = 'html';
   S.mHtml = MT().scaffold.html; S.mCss = MT().scaffold.css;
+  const md = S.drafts['m:' + MT().id];
+  if(md && typeof md.html === 'string'){ S.mHtml = md.html; S.mCss = md.css || ''; }
   renderMarkup();
+  schedulePlaceSave();
 }
 function renderMarkup(){
   const t = MT(), pr = progressOf(t.id);
@@ -1108,7 +1179,7 @@ function markupCheck(){
       if(stars > prev.stars) award((stars - prev.stars) * 10);
       S.progress[t.id] = { stars: Math.max(stars, prev.stars), done:true };
       saveProgress();
-      $('mChecks').innerHTML = '<div class="okbox"><b>Correct.</b><div class="stars">'+starStr(stars)+'</div></div>' + $('mChecks').innerHTML;
+      $('mChecks').innerHTML = '<div class="okbox" role="status"><b>Correct.</b><div class="stars">'+starStr(stars)+'</div></div>' + $('mChecks').innerHTML;
       renderMarkup(); renderLessonList();
     }
   };
@@ -1128,6 +1199,7 @@ function setMarkupLesson(i){
 
 function setPhase(p){
   stopPlay();
+  schedulePlaceSave();
   if(p !== 'predict'){ S.reviewMode = false; S.drillMode = false; }   // walking away ends the round
   S.phase = p;
   if(S.track === 'markup'){
@@ -1150,8 +1222,8 @@ function setPhase(p){
     $('langSel').style.display = 'none';
     if(p === 'learn'){
       $('teachBlocks').innerHTML = ML().teach.map(b=>
-        '<div class="blk"><h3>'+esc(b.h)+'</h3><p>'+esc(b.p)+'</p></div>').join('');
-      $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h3>'+esc(ML().practice.h)+'</h3><p>'+esc(ML().practice.p)+'</p>';
+        '<div class="blk"><h2>'+esc(b.h)+'</h2><p>'+esc(b.p)+'</p></div>').join('');
+      $('practiceBox').innerHTML = '<div class="eyebrow">Good practice</div><h2>'+esc(ML().practice.h)+'</h2><p>'+esc(ML().practice.p)+'</p>';
       $('demoCaption').textContent = 'This is the worked example. Your own code goes in Build.';
       paintMarkupDemo();
     } else loadMarkupTask(S.mTask);
@@ -1199,7 +1271,7 @@ function loadLesson(i){
 }
 function renderTokens(){
   $('tokenbar').innerHTML = (TOKENS[S.lang]||[]).map((t,i)=>
-    '<button data-i="'+i+'">'+esc(t.trim() === '' ? '⇥' : t.trim())+'</button>').join('');
+    '<button class="tok" data-i="'+i+'">'+esc(t.trim() === '' ? '⇥' : t.trim())+'</button>').join('');
 }
 function lessonCard(les, i, lock){
   const stars = les.tasks.reduce((a,t)=>a + progressOf(t.id).stars, 0);
@@ -1212,7 +1284,7 @@ function lessonCard(les, i, lock){
 }
 
 function renderLessonList(){
-  const markup = '<div class="eyebrow" style="margin:22px 0 4px"><span style="font-size:17px;font-weight:750">HTML and CSS</span></div>' + MARKUP_LESSONS.map((les,i)=>{
+  const markup = '<div class="eyebrow" style="margin:24px 0 4px"><span style="font-size:17px;font-weight:750">HTML and CSS</span></div>' + MARKUP_LESSONS.map((les,i)=>{
     const stars = les.tasks.reduce((a,t)=>a + progressOf(t.id).stars, 0);
     return '<button class="lessonitem" data-m="'+i+'"'+(S.track==='markup'&&i===S.mLesson?' aria-current="true"':'')+'>'+
       '<div class="t">'+esc(les.title)+'</div><div class="g">'+esc(les.idea)+'</div>'+
@@ -1242,7 +1314,7 @@ function renderLessonList(){
     if(!groups[lvl]) continue;
     const total = groups[lvl].reduce((a,[les])=>a + les.tasks.filter(t=>t.expect).length*3, 0);
     const got = groups[lvl].reduce((a,[les])=>a + les.tasks.reduce((b,t)=>b+progressOf(t.id).stars,0), 0);
-    html += '<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:baseline;margin:'+(html?'22px':'6px')+' 0 4px">'+
+    html += '<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:baseline;margin:'+(html?'24px':'8px')+' 0 4px">'+
       '<span style="font-size:17px;font-weight:750">'+esc(lvl)+'</span>'+
       (total ? '<span style="color:'+(done(lvl)?'var(--good)':'var(--slate)')+'">'+got+' of '+total+' stars</span>' : '')+'</div>';
     html += groups[lvl].map(([les,i])=>lessonCard(les, i, !unlocked(i))).join('');
@@ -1327,7 +1399,7 @@ function insertToken(tok){
 
 $('langSel').innerHTML = Object.values(POLYGLOT.SPECS).map(sp=>'<option value="'+sp.id+'">'+sp.name+'</option>').join('');
 $('langSel').value = S.lang;
-$('langSel').onchange = e=>switchLang(e.target.value);
+$('langSel').onchange = e=>{ switchLang(e.target.value); if(S.phase === 'build') saveDraft(); else schedulePlaceSave(); };
 $('cmpSel').onchange = e=>{ S.cmpLang = e.target.value || null; renderCompare(); };
 function sendPlayInput(){
   const v = $('playIn').value;
@@ -1358,10 +1430,10 @@ $('btnRun').onclick = ()=>{ if(S.editing) setEditing(false); runSource(S.code, '
 $('btnCheck').onclick = doCheck;
 $('btnHint').onclick = doHint;
 $('btnReveal').onclick = doReveal;
-$('btnResetTask').onclick = ()=>loadTask(S.taskIndex);
+$('btnResetTask').onclick = ()=>{ delete S.drafts[draftKey()]; loadTask(S.taskIndex); schedulePlaceSave(); };
 $('tapEdit').onclick = ()=>setEditing(!S.editing);
 $('buildCode').onclick = ()=>setEditing(true);
-$('editor').oninput = e=>{ S.code = e.target.value; renderPlay(); };
+$('editor').oninput = e=>{ S.code = e.target.value; renderPlay(); saveDraft(); };
 function editorKeys(ta, onChange){
   ta.addEventListener('keydown', e=>{
     const v = ta.value, a = ta.selectionStart, b = ta.selectionEnd;
@@ -1407,11 +1479,11 @@ $('btnPlay').onclick = ()=>{
   if(S.playing){ stopPlay(); return; }
   const max = S.result && S.result.trace.length ? S.result.trace.length-1 : 0;
   if(S.step >= max) setStep(0);
-  $('btnPlay').textContent = '❙❙';
+  $('btnPlay').innerHTML = PAUSE_ICON; $('btnPlay').setAttribute('aria-label', 'Pause');
   S.playing = setInterval(()=>{ if(S.step >= max){ stopPlay(); return; } setStep(S.step+1); }, 260);
 };
 $('taskDots').onclick = e=>{ const b = e.target.closest('button[data-t]'); if(b) loadTask(+b.dataset.t); };
-$('btnNext').onclick = ()=>{ const n = nextStep(); if(n) n.go(); };
+$('btnNextTask').onclick = ()=>{ const n = nextStep(); if(n) n.go(); };
 $('tokenbar').onclick = e=>{ const b = e.target.closest('button'); if(b) insertToken((TOKENS[S.lang]||[])[parseInt(b.dataset.i,10)]); };
 $('btnLessons').onclick = ()=>{ $('drawer').dataset.open = 'true'; };
 $('paneHtml').onclick = ()=>{ S.mPane='html'; renderMarkup(); };
@@ -1419,11 +1491,12 @@ $('paneCss').onclick = ()=>{ S.mPane='css'; renderMarkup(); };
 $('mEditor').oninput = e=>{
   if(S.mPane === 'html') S.mHtml = e.target.value; else S.mCss = e.target.value;
   renderPreview(S.mHtml, S.mCss);
+  saveMarkupDraft();
 };
 $('mCheck').onclick = markupCheck;
 $('mHint').onclick = ()=>{ if(S.mHint < (MT().hints||[]).length) S.mHint++; renderMarkup(); };
 $('mReveal').onclick = ()=>{ S.mRevealed = true; S.mHtml = MT().solution.html; S.mCss = MT().solution.css; renderMarkup(); };
-$('mReset').onclick = ()=>loadMarkupTask(S.mTask);
+$('mReset').onclick = ()=>{ delete S.drafts['m:' + MT().id]; loadMarkupTask(S.mTask); schedulePlaceSave(); };
 $('mDots').onclick = e=>{ const b = e.target.closest('button[data-t]'); if(b) loadMarkupTask(+b.dataset.t); };
 $('mNext').onclick = ()=>{ const n = nextMarkupStep(); if(n) n.go(); };
 

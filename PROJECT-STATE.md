@@ -169,6 +169,50 @@ Adding a language is mostly a spec plus a few hooks: not a new parser.
     `apple-mobile-web-app-title`, so the manifest name is the likeliest source (not verifiable off
     a real iPhone). pages-check verifies every icon's real pixel size. `sw.js` is at `polyglot-v4`.
     `icons-draw.mjs` is gone; it would have overwritten this icon with the old drawn one.
+38. **(2026-09-22) Icon addresses carry the sw.js version** (`apple-touch-icon.png?v=5`,
+    `manifest.json?v=5`, and the same in the manifest's icon list and the offline precache list).
+    Reported from the live site: after the new icon was uploaded, Add to Home Screen still showed
+    the old one. Two causes: the repo had gained an `icons/` folder (the project has none, so icons
+    uploaded there are invisible to the site), and old icons are remembered by GitHub's CDN (about
+    10 minutes), by the app's offline cache, and by iOS itself. `make-pages.py` reads the number
+    from `const CACHE = 'polyglot-vN'` and writes it into `index.html`, `manifest.json` and the
+    `SHELL` list in `sw.js`, so raising that one number is the whole update step. pages-check
+    asserts every icon address carries that version and that the versioned icon loads offline.
+39. **(2026-09-28) The avoid-ai-ui-tells audit is a gate** (`ui-audit.mjs` runs the skill's own
+    `ui-tell-audit.js` on six screens at 390, 320 and 1280px in both themes). Worst screen went from
+    4 flagged categories to 1. System-level fixes: every button group shares its row equally (the
+    phase bar is a 3-column grid; the XP score moved to the lesson line; a solved task's Next is its
+    own full-width group above the peer row; Hint steps aside once Show me appears, capping a row at
+    four); all spacing on a 4px scale with a 16px gutter held by margins; small labels 14px;
+    `svh` heights with `vh` fallback; the narrow-phone `max-width` patch replaced by a mobile-first
+    layout; headings h1 then h2; stepper icons are SVG, not emoji; result boxes carry
+    `role="status"` (their coloured edge now means something, and screen readers announce them).
+    **Documented exceptions, allowed by the gate and nothing else:** the code-token strip (chips as
+    wide as their code, scrolling past the edge, like keys), and answer options and lesson rows,
+    whose heights follow their content.
+40. **(2026-09-28) Security, per web-app-security.** A meta Content-Security-Policy is the first
+    thing in `<head>`: `default-src 'none'`, inline script and style allowed (one file), images only
+    from the page or `data:`, `connect-src 'self'`. `esc()` now escapes quotes too. The skill's scan
+    flags every `innerHTML` with a variable (35 leads); rather than trust or dismiss them,
+    `injection-check.mjs` pushes a hostile image tag through every path typed text reaches (output,
+    variables, stepper, errors, Check verdict, other languages, the adventure console, the HTML
+    preview) and proves the preview is sandboxed without scripts and that outbound fetches and image
+    beacons are blocked. It was shown to fail 14 of 18 checks with escaping removed. Storage keys
+    are app-prefixed and hold nothing sensitive, which matters because every project at
+    casimbahadar.github.io shares one origin.
+41. **(2026-09-28) Resume where the learner left off** (ux-flow-design: interruptions). A reload
+    used to return to lesson 1, in Python, with typed code lost; iPhones unload background tabs
+    often. The save now also holds the place (track, lesson by id, task, step, language) and a draft
+    per task per language (newest 60, 20,000 characters each). Saving stays off until the saved
+    place is restored, since start-up opens lesson 1. Reset clears the task's draft.
+42. **(2026-09-28) Two live bugs found by the new skills' checks.** The Next task button (decision
+    36) reused the id `btnNext`, which the stepper's "next step" button already had, so stepping
+    forward did nothing on the live site; it is now `btnNextTask`, and ui-browser fails on any
+    duplicate id and presses every stepper control. And `<meta name="color-scheme" content="dark">`
+    survived from the dark-only design; it is now `light dark`.
+43. **(2026-09-28) Tap budgets for the core tasks**, driven by real taps in ui-browser: first answer
+    checked from the lesson screen in 3, moving on after solving in 1, changing appearance in 2.
+    A flow that grows fails the build until the change is a decision.
 7. **16px minimum on text-entry controls** (input/textarea/select), or iOS zooms on focus. The
    pre-flight enforces it, scoped to keyboard-summoning controls: range sliders and buttons are exempt.
 8. **(2026-08-10) Curriculum fields may not be named `size`, `length`, `Count` or `Length`**: some

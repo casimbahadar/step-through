@@ -11,6 +11,8 @@ Every file is in one folder. GitHub Pages serves `index.html` as the website.
 
 GitHub accepts up to 100 files per upload, and this folder has fewer than 40. Uploading a file with the same name as one already there replaces it.
 
+**Always upload from the repository's main page.** If you tap "Add file" while you are looking inside a folder, the files land in that folder, and the website will not see them. This project has no folders at all: every file belongs at the top level, next to `index.html`.
+
 `.gitignore` starts with a dot, so the Files app may hide it. You do not need it for uploading this way. It only matters if you later use git on a computer.
 
 ## Turning the website on (once)
@@ -38,7 +40,9 @@ Once installed it works offline.
 
 ## Changing the icon
 
-Replace `icon-source.png` with a 1024 by 1024 square that is the icon's own colour right to the edges, with no rounded corners and no shadow. Phones round the corners themselves. Then run `python3 make-icons.py`, raise the version in `sw.js`, and upload the four icon files, `icon-source.png` and `sw.js`.
+Replace `icon-source.png` with a 1024 by 1024 square that is the icon's own colour right to the edges, with no rounded corners and no shadow. Phones round the corners themselves. Then run `python3 make-icons.py`, raise the version in `sw.js`, run `npm run build`, and upload the four icon files, `icon-source.png`, `sw.js`, `manifest.json` and `index.html`.
+
+The build gives every icon a version tag in its address (`apple-touch-icon.png?v=5`), taken from the number in `sw.js`. GitHub's servers, the app's offline copy and iOS all remember old icons, and a new address gets past all three. So raising the `sw.js` number is what makes a new icon appear.
 
 A phone keeps the icon and name it had when the app was added to the home screen. To see a new icon or name, remove the app from the home screen and add it again from Safari.
 

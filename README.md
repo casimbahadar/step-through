@@ -29,6 +29,7 @@ The stepper is the heart of the app. After running a program you can move throug
 - **Appearance:** open the ☰ menu. "Match phone" follows the phone's light or dark setting, while "Light" and "Dark" override it.
 - **Progress** is saved on the device only. There is no account and nothing is sent anywhere. Clearing the browser's data clears your progress.
 - **Offline:** once installed from the web version, it works with no signal.
+- **Picking up where you left off:** the app remembers your lesson, task, step and language, and what you had typed in each task, so a reload or an unloaded tab brings you straight back. Reset clears a task's saved code.
 
 ## How it works
 
@@ -93,6 +94,8 @@ npm run test:compilers    # real compilers for 7 languages (several minutes; Jav
 | `preflight.mjs` | Phone widths down to 320px, 44px tap targets, fonts loading, no page zoom on typing |
 | `contrast-check.mjs` | Every piece of visible text meets WCAG AA contrast, in light and dark |
 | `theme-check.mjs` | The Appearance setting, including that it survives a reload |
+| `injection-check.mjs` | Hostile text typed into every input path renders as text, the lesson preview runs no scripts, and the security policy blocks sending data to other sites |
+| `ui-audit.mjs` | The avoid-ai-ui-tells audit (`ui-tell-audit.js`, copied unchanged from the skill) on six screens, three widths, both themes; fails on anything not documented |
 | `pages-check.mjs` | The web version over http: installable, saves progress, works offline |
 | `multi-oracle.mjs` | Compiles and runs every program with the real Ruby, PHP, Go, Java, Kotlin, C# and TypeScript toolchains |
 
